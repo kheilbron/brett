@@ -542,12 +542,15 @@ rm_genes_without_enough_snps <- function(maindir){
 
 run_magma <- function(maindir){
   
+  # Create a job identifier
+  job.id <- paste0( "m", sample( x=1:999, size=1 ) )
+  
   # Loop through chromosomes 
   for( CHR in 1:22 ){
     
     # Create job name and log file name
-    jobname <- paste0( "magma", CHR )
-    logfile <- paste0( maindir, "/logs/", jobname, ".log" )
+    jobname <- paste0( job.id, ".", CHR )
+    logfile <- paste0( maindir, "/logs/magma", CHR, ".log" )
     
     # Run
     message( "Submitting job to the cluster for chromosome: ", CHR )
@@ -559,7 +562,7 @@ run_magma <- function(maindir){
                   CHR, maindir )
     system(cmd)
   }
-  ensure_finished_jobs("magma")
+  ensure_finished_jobs(job.id)
 }
 
 
@@ -718,9 +721,21 @@ magma_plots <- function( maindir, z.or.p="z" ){
 #-------------------------------------------------------------------------------
 
 run_pops <- function(maindir){
+  
+  # Create job name and log file name
+  jobname <- paste0( "p", sample( x=1:999, size=1 ) )
+  logfile <- file.path( maindir, "logs/pops.log" )
+  
+  # Run
   bash_script <- "/home/heilbron/repos/brett/f_run_pops.sh"
-  cmd <- paste( "sbatch", bash_script, maindir )
+  cmd <- paste( "sbatch", 
+                "-J", jobname,
+                "-o", logfile,
+                "-e", logfile,
+                bash_script, 
+                maindir )
   system(cmd)
+  ensure_finished_jobs(jobname)
 }
 
 
@@ -743,6 +758,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
   genes     <- fread(gene_file)
   
   # Read in POPS results, calculate P values
+  message2("Read in POPS results, calculate P values")
   pops_file <- file.path( maindir, "pops.preds" )
   pops <- fread(pops_file)
   names(pops)[ names(pops) == "PoPS_Score" ] <- "pops"
@@ -858,9 +874,6 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   
   # format_gwas_and_snp_loc_files
   #    1. Remove duplicated CPRA in the GWAS file
-  # run_magma
-  #    1. Use a random number for the cluster job identifier so that multiple
-  #       POPS runs can occur in parallel
   
   
   #-------------------------------------------------------------------------------
