@@ -1,5 +1,8 @@
 
-# format_gwas.R
+# z_brett.R
+#   Author: Karl Heilbron
+#   Created: July 25, 2023
+
 
 #-------------------------------------------------------------------------------
 #   simple_functions
@@ -144,19 +147,19 @@ check_arguments <- function( gw.file    = NULL,
   }
   
   # Case counts must be positive integers
-  if( n1.col %in% names(gw) ){
+  if( !is.null(n1.col) ){
     if( !is.integer( gw[[n1.col]] ) ) stop("Case counts must be integers")
     if( any( gw[[n1.col]] < 1 ) )     stop("Case counts must be > 0")
   }
   
   # Control counts must be positive integers
-  if( n0.col %in% names(gw) ){
+  if( !is.null(n0.col) ){
     if( !is.integer( gw[[n0.col]] ) ) stop("Control counts must be integers")
     if( any( gw[[n0.col]] < 1 ) )     stop("Control counts must be > 0")
   }
   
   # Effective sample sizes must be positive numbers
-  if( n.col %in% names(gw) ){
+  if( !is.null(n.col) ){
     if( !is.numeric( gw[[n.col]] ) ) stop("Effective sample sizes must be numbers")
     if( any( gw[[n.col]] <= 0 ) )    stop("Effective sample sizes must be > 0")
   }
@@ -899,6 +902,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   suppressPackageStartupMessages( library(data.table) )
   
   # Print inputs
+  message_header("Print inputs")
   message2( "Main directory: ", maindir )
   message2( "GWAS file: ", gw.file )
   message2( "Chromosome/position column name: ", chr.bp.col)
@@ -910,8 +914,8 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   message2( "Effect allele frequency column name: ", eaf.col )
   message2( "Number of cases column name: ", n1.col )
   message2( "Number of controls column name: ", n0.col )
-  message2( "Effecive sample size column name: ", n.col )
-  message2( "Effecive sample size: ", n )
+  message2( "Effective sample size column name: ", n.col )
+  message2( "Effective sample size: ", n )
   message2( "Use z-score or P value?: ", z.or.p )
   
   
