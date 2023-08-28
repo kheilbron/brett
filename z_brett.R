@@ -562,7 +562,7 @@ run_magma <- function(maindir){
                   "-J", jobname,
                   "-o", logfile,
                   "-e", logfile,
-                  "/home/heilbron/repos/pops_brain/e1_run_magma.sh",
+                  "/home/heilbron/repos/brett/e1_run_magma.sh",
                   CHR, maindir )
     system(cmd)
   }
@@ -576,7 +576,7 @@ run_magma <- function(maindir){
 
 run_magma_pt <- function(maindir){
   cmd <- paste( "sbatch",
-                "/home/heilbron/repos/pops_brain/e3_run_magma_parallel_thin.sh",
+                "/home/heilbron/repos/brett/e3_run_magma_parallel_thin.sh",
                 maindir )
   system(cmd)
 }
@@ -723,7 +723,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
 #-------------------------------------------------------------------------------
 
 run_pops <- function(maindir){
-  bash_script <- "/home/heilbron/repos/pops_brain/f_run_pops.sh"
+  bash_script <- "/home/heilbron/repos/brett/f_run_pops.sh"
   cmd <- paste( "sbatch", bash_script, maindir )
   system(cmd)
 }
