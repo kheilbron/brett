@@ -660,7 +660,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
   for( i in seq_len( NROW(peaks) ) ){
     
     # Subset MAGMA results
-    message2("Starting locus: ", i, "/", NROW(peaks) )
+    # message2("Starting locus: ", i, "/", NROW(peaks) )
     buffer_Mbp <- 0.2
     xmin <- peaks$lo[i]/1e6 - buffer_Mbp
     xmax <- peaks$hi[i]/1e6 + buffer_Mbp
@@ -739,8 +739,8 @@ pops_plots <- function( maindir, z.or.p="z" ){
   
   # Read in gene locations
   message2("Read in gene locations")
-  gene_file <- file.path( maindir, "/home/heilbron/projects/pops/data/gene_locations.tsv" )
-  genes <- fread(gene_file)
+  gene_file <- "/home/heilbron/projects/pops/data/gene_locations.tsv"
+  genes     <- fread(gene_file)
   
   # Read in POPS results, calculate P values
   pops_file <- file.path( maindir, "pops.preds" )
