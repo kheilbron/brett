@@ -21,7 +21,7 @@ pops <- fread( cmd=pops_cmd )
 gc_file <- "~/projects/pops/data/gencode.v44.grch37.gff3.gz"
 gc_cmd  <- paste( 'zcat', gc_file, '| grep -v "#"' )
 gc      <- fread( cmd=gc_cmd )
-names(gc) <- c( "chr", "src", "type", "START", "END", "score", "strand", "phase", "attr" )
+names(gc) <- c( "CHR", "src", "type", "START", "END", "score", "STRAND", "phase", "attr" )
 
 # Subset to genes
 gc2 <- gc[ gc$type == "gene" , ]
@@ -40,10 +40,10 @@ gc2$NAME <- sub( pattern     = ".*gene_name=(.*);level=.*",
 # Make CHR an integer
 gc2$CHR <- sub( pattern     = "^chr([[:alnum:]]+)$",
                 replacement = "\\1",
-                x           = gc2$chr )
+                x           = gc2$CHR )
 
 # Make a TSS column (START if on + strand, END if on - strand)
-gc2$TSS <- ifelse( gc2$strand == "+",
+gc2$TSS <- ifelse( gc2$STRAND == "+",
                    gc2$START,
                    gc2$END )
 
@@ -53,7 +53,7 @@ gc2$TSS <- ifelse( gc2$strand == "+",
 #--------------------------------------------------------------------------------
 
 # Subset
-gcols <- c( "ENSGID", "NAME", "CHR", "START", "END", "TSS" )
+gcols <- c( "ENSGID", "CHR", "START", "END", "TSS", "STRAND", "NAME" )
 gc3 <- gc2[ match( pops$ENSGID, gc2$ENSGID ) , ..gcols ]
 gc4 <- gc3[ !is.na(gc3$ENSGID) , ]
 
