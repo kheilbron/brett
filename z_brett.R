@@ -191,13 +191,6 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
                                            n          = NULL ){
   
   #-------------------------------------------------------------------------------
-  #   TODOs
-  #-------------------------------------------------------------------------------
-  
-  # 1. Remove duplicated CPRA in the GWAS file
-  
-  
-  #-------------------------------------------------------------------------------
   #   Input descriptions
   #-------------------------------------------------------------------------------
   
@@ -634,6 +627,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
   mag  <- fread(mag_file)
   
   # Use z-score or P value as the plot's y-axis, depending on choice
+  message2("Establish plot y-axis (z-score or -log10 P value)")
   if( z.or.p == "z" ){
     mag$Y <- abs(mag$ZSTAT)
     ylab <- "Z-score"
@@ -645,13 +639,14 @@ magma_plots <- function( maindir, z.or.p="z" ){
   }
   
   # Re-scale positions to Mbp
+  message2("Re-scale positions to Mbp")
   mag$START <- mag$START/1e6
   mag$STOP  <- mag$STOP/1e6
   
   # Read in gene locations
   message2("Read in gene locations")
-  gene_file <- file.path( maindir, "/home/heilbron/projects/pops/data/gene_locations.tsv" )
-  genes <- fread(gene_file)
+  gene_file <- "/home/heilbron/projects/pops/data/gene_locations.tsv"
+  genes     <- fread(gene_file)
   names(genes) <- c( "GENE", "CHR", "START", "STOP", "TSS", "STRAND", "NAME" )
   
   # Add HGNC gene names to MAGMA
@@ -858,6 +853,17 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   
   
   #-------------------------------------------------------------------------------
+  #   TODOs
+  #-------------------------------------------------------------------------------
+  
+  # format_gwas_and_snp_loc_files
+  #    1. Remove duplicated CPRA in the GWAS file
+  # run_magma
+  #    1. Use a random number for the cluster job identifier so that multiple
+  #       POPS runs can occur in parallel
+  
+  
+  #-------------------------------------------------------------------------------
   #   Input descriptions
   #-------------------------------------------------------------------------------
   
@@ -1042,6 +1048,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
                         mag_cov_collated_file ) ) ){
     message2("Output file exists, skipping")
   }else{
+    message2("Collating MAGMA results")
     collate_magma( maindir = maindir )
   }
   
@@ -1054,6 +1061,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   if( file.exists(mag_plots_file) ){
     message2("Output file exists, skipping")
   }else{
+    message2("Making MAGMA plots")
     magma_plots( maindir = maindir, 
                  z.or.p  = z.or.p )
   }
@@ -1069,6 +1077,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
                         pops_pred_file ) ) ){
     message2("Output files exist, skipping")
   }else{
+    message2("Running POPS")
     run_pops( maindir = maindir )
   }
   
@@ -1081,6 +1090,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   if( file.exists(pops_plots_file) ){
     message2("Output file exists, skipping")
   }else{
+    message2("Making POPS plots")
     pops_plots( maindir = maindir, 
                 z.or.p  = z.or.p )
   }
