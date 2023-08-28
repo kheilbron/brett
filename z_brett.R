@@ -422,7 +422,7 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
     top_chr <- sig_ss$chr[top_idx]
     top_bp  <- sig_ss$bp[top_idx]
     top_p   <- sig_ss$P[top_idx]
-    message2( "Analyzing locus ", length(peaks0)+1, ": chr", top_chr, ":", top_bp )
+    # message2( "Analyzing locus ", length(peaks0)+1, ": chr", top_chr, ":", top_bp )
     
     # Subset to +/- 2Mb around it
     boundaries_right <- top_bp + seq( 0, 2e6, 2e5 )
@@ -553,7 +553,7 @@ run_magma <- function(maindir){
   for( CHR in 1:22 ){
     
     # Create job name and log file name
-    jobname <- paste0( "magma", i )
+    jobname <- paste0( "magma", CHR )
     logfile <- paste0( maindir, "/logs/", jobname, ".log" )
     
     # Run
@@ -899,6 +899,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   
   # Load libraries and sources
   source("/home/heilbron/repos/brett/z_brett.R")
+  message2("Load libraries and sources")
   suppressPackageStartupMessages( library(data.table) )
   
   # Print inputs
@@ -925,6 +926,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   
   if(check.args){
     message_header("Check arguments")
+    message2("Checking arguments")
     check_arguments( gw.file    = gw.file,
                      chr.bp.col = chr.bp.col,
                      chr.col    = chr.col,
