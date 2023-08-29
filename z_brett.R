@@ -232,7 +232,14 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
   
   # Read in HRC SNPs
   message2("Read in HRC SNPs")
-  hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_mac_ge_10.tsv")
+  rare.or.common.snps <- "common"
+  if( rare.or.common.snps == "common"){
+    hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv")
+  }else if( rare.or.common.snps == "rare"){
+    hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_mac_ge_10.tsv")
+  }else{
+    stop("rare.or.common must be 'rare' or 'common'")
+  }
   
   # Read in GWAS
   message2("Read in GWAS")
@@ -792,7 +799,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
   for( i in seq_len( NROW(peaks) ) ){
     
     # Subset PoPS results
-    message2("Starting locus: ", i, "/", NROW(peaks) )
+    # message2("Starting locus: ", i, "/", NROW(peaks) )
     buffer_Mbp <- 0.2
     xmin <- peaks$lo[i]/1e6 - buffer_Mbp
     xmax <- peaks$hi[i]/1e6 + buffer_Mbp
@@ -1036,6 +1043,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   if( file.exists(clean_snp_map_file) ){
     message2("Output file exists, skipping")
   }else{
+    message2("Removing genes without enough SNPs") 
     rm_genes_without_enough_snps( maindir = maindir )
   }
   
