@@ -66,7 +66,8 @@ z_to_p <- function( z, log.p=FALSE ){
 #   check_arguments
 #-------------------------------------------------------------------------------
 
-check_arguments <- function( gw.file    = NULL,
+check_arguments <- function( ld.panel   = NULL, 
+                             gw.file    = NULL,
                              chr.bp.col = NULL,
                              chr.col    = NULL,
                              bp.col     = NULL,
@@ -79,6 +80,9 @@ check_arguments <- function( gw.file    = NULL,
                              n.col      = NULL,
                              n          = NULL,
                              z.or.p     = NULL ){
+  
+  # ld.panel must be either "hrc" or "g1000"
+  if( ld.panel != "hrc" & ld.panel != "g1000" ) stop("ld.panel must be either 'hrc' or 'g1000'")
   
   # Does the GWAS file exist?
   if( !file.exists(gw.file) )  stop("GWAS file does not exist")
@@ -177,6 +181,7 @@ check_arguments <- function( gw.file    = NULL,
 #-------------------------------------------------------------------------------
 
 format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
+                                           ld.panel   = "hrc",
                                            gw.file    = "/home/heilbron/projects/pops/analyses/pd/meta5_raw.tab.gz",
                                            chr.bp.col = "SNP",
                                            chr.col    = NULL,
@@ -194,6 +199,9 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
   #   Input descriptions
   #-------------------------------------------------------------------------------
   
+  #   maindir:    Main directory in which to store results
+  #   ld.panel:   Which LD reference panel should be used? Options are either: 
+  #               "hrc" or "g1000".
   #   gw.file:    GWAS file name
   #   chr.bp.col: Optional. The name of a GWAS column containing chromosome and bp 
   #               information separated by a punctuation character. Must be
@@ -230,15 +238,23 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
   # Load libraries and sources
   library(data.table)
   
-  # Read in HRC SNPs
-  message2("Read in HRC SNPs")
-  rare.or.common.snps <- "common"
-  if( rare.or.common.snps == "common"){
-    hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv")
-  }else if( rare.or.common.snps == "rare"){
-    hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_mac_ge_10.tsv")
+  # Read in reference panel SNPs
+  if( ld.panel == "hrc" ){
+    rare.or.common.snps <- "common"
+    if( rare.or.common.snps == "common"){
+      message2("Read in HRC SNPs with EUR MAF >= 1%")
+      hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv")
+    }else if( rare.or.common.snps == "rare"){
+      message2("Read in HRC SNPs with EUR MAC >= 10")
+      hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_mac_ge_10.tsv")
+    }else{
+      stop("rare.or.common must be 'rare' or 'common'")
+    }
+  }else if( ld.panel == "g1000" ){
+    message2("Read in 1000 Genomes SNPs with EUR MAC >= 10")
+    hrc <- fread("/home/heilbron/projects/pops/data/g1000_eur_snps_mac_ge_10.tsv")
   }else{
-    stop("rare.or.common must be 'rare' or 'common'")
+    stop("ld.panel must be either 'hrc' or 'g1000'")
   }
   
   # Read in GWAS
@@ -285,24 +301,33 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
   
   
   #-------------------------------------------------------------------------------
-  #   Harmonize GWAS and HRC alleles: without allele frequency information
+  #   Harmonize GWAS and reference panel alleles: without allele frequency information
   #-------------------------------------------------------------------------------
   
-  # Subset GWAS and HRC to shared SNPs based on chromosome and position
-  message2("Subset GWAS and HRC to shared SNPs based on chromosome and position")
-  cpab_gw  <- paste( gw$chr,  gw$bp,  ifelse( gw$a1   < gw$a2,   gw$a1,   gw$a2  ), ifelse( gw$a1    < gw$a2,   gw$a2,   gw$a1  ),  sep="_" )
-  cpab_hrc <- paste( hrc$chr, hrc$bp, ifelse( hrc$alt < hrc$ref, hrc$alt, hrc$ref ), ifelse( hrc$alt < hrc$ref, hrc$ref, hrc$alt ), sep="_" )
+  # Subset GWAS and reference panel to shared SNPs based on chromosome and position
+  message2("Subset GWAS and reference panel to shared SNPs based on chromosome and position")
+  cpab_gw  <- paste( gw$chr,  gw$bp,  
+                     ifelse( gw$a1   < gw$a2,   gw$a1,   gw$a2  ), 
+                     ifelse( gw$a1    < gw$a2,   gw$a2,   gw$a1  ),  sep="_" )
+  cpab_hrc <- paste( hrc$chr, hrc$bp, 
+                     ifelse( hrc$alt < hrc$ref, hrc$alt, hrc$ref ), 
+                     ifelse( hrc$alt < hrc$ref, hrc$ref, hrc$alt ), sep="_" )
   cpab_both <- intersect( cpab_hrc, cpab_gw )
   hrc2 <- hrc[ match( cpab_both, cpab_hrc ) , ]
   gw2  <- gw[  match( cpab_both, cpab_gw  ) , ]
   message2( "Of the ", NROW(gw), " GWAS SNPs, ", NROW(gw2), 
-           " (", round( 100*NROW(gw2)/NROW(gw), 2 ), "%) were found in the HRC panel" )
-  message2( "Of the ", NROW(hrc), " HRC SNPs, ", NROW(hrc2), 
+           " (", round( 100*NROW(gw2)/NROW(gw), 2 ), "%) were found in the reference panel" )
+  message2( "Of the ", NROW(hrc), " reference panel SNPs, ", NROW(hrc2), 
            " (", round( 100*NROW(hrc2)/NROW(hrc), 2 ), "%) were found in the GWAS" )
   
-  # Find palindromic SNPs and SNPs with alleles that are flipped in HRC v. GWAS ('discordant')
-  message2("Find palindromic SNPs and SNPs with alleles that are flipped in HRC v. GWAS ('discordant')")
-  pal     <- ( hrc2$alt=="A" & hrc2$ref=="T" ) | ( hrc2$alt=="T" & hrc2$ref=="A" ) | ( hrc2$alt=="C" & hrc2$ref=="G" ) | ( hrc2$alt=="G" & hrc2$ref=="C" )
+  # Find palindromic SNPs and SNPs with alleles that are flipped in 
+  # the reference panel v. GWAS ('discordant')
+  message2("Find palindromic SNPs and SNPs with alleles that are flipped in ",
+           "the reference panel v. GWAS ('discordant')")
+  pal     <- ( hrc2$alt=="A" & hrc2$ref=="T" ) | 
+             ( hrc2$alt=="T" & hrc2$ref=="A" ) | 
+             ( hrc2$alt=="C" & hrc2$ref=="G" ) | 
+             ( hrc2$alt=="G" & hrc2$ref=="C" )
   discord <- hrc2$alt != gw2$a1
   message2( sum(pal),     "/", NROW(hrc2), " (", round( 100 * sum(pal)     / NROW(hrc2), 2 ), "%) SNPs are palindromic" )
   message2( sum(discord), "/", NROW(hrc2), " (", round( 100 * sum(discord) / NROW(hrc2), 2 ), "%) SNPs have discordant alleles" )
@@ -337,12 +362,15 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
     gw2$eaf[disc_pal_compat] <- 1  - gw2$eaf[disc_pal_compat]
     message2( sum(disc_pal_compat), "/", sum(discord), 
              " (", round( 100 * sum(disc_pal_compat) / sum(discord), 2 ), 
-             "%) discordant SNPs were palindromic but with AFs that were clearly compatible with HRC, flipping alleles" )
+             "%) discordant SNPs were palindromic but with AFs that were clearly ",
+             "compatible with the reference panel, flipping alleles" )
     
     # Flag discordant palindromic SNPs with incompatible AFs for removal
     disc_pal_incompat <- discord & pal & diff_af_disc
-    message2( sum(disc_pal_incompat), "/", sum(discord), " (", round( 100 * sum(disc_pal_incompat) / sum(discord), 2 ), 
-             "%) discordant SNPs were palindromic and had AFs that were not clearly compatible with HRC, flagging for removal" )
+    message2( sum(disc_pal_incompat), "/", sum(discord), 
+              " (", round( 100 * sum(disc_pal_incompat) / sum(discord), 2 ), 
+             "%) discordant SNPs were palindromic and had AFs that were not ",
+             "clearly compatible with the reference panel, flagging for removal" )
     
     # For concordant palindromic SNPs with clearly incompatible AFs: flip GWAS alleles
     diff_af_conc <- abs( gw2$eaf - hrc2$af ) > 0.2
@@ -351,19 +379,22 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
     gw2$eaf[conc_pal_incompat] <- 1  - gw2$eaf[conc_pal_incompat]
     message2( sum(conc_pal_incompat), "/", sum( !discord & pal ), 
              " (", round( 100 * sum(conc_pal_incompat) / sum( !discord & pal ), 2 ), 
-             "%) concordant palindromic SNPs had AFs that were clearly different from HRC, flipped alleles" )
+             "%) concordant palindromic SNPs had AFs that were clearly ",
+             "different from the reference panel, flipped alleles" )
     
     # Report the number of concordant palindromic SNPs with clearly compatible AFs
     conc_pal_compat <- !discord & pal & !diff_af_conc & !common_af
     message2( sum(conc_pal_compat), "/", sum( !discord & pal ), 
              " (", round( 100 * sum(conc_pal_compat) / sum( !discord & pal ), 2 ), 
-             "%) concordant palindromic SNPs had AFs that were clearly similar to HRC, no action" )
+             "%) concordant palindromic SNPs had AFs that were clearly similar ",
+             "to the reference panel, no action" )
     
     # Flag concordant palindromic SNPs with HRC MAF > 40% for removal
     conc_pal_ambig <- !discord & pal & common_af
     message2( sum(conc_pal_ambig), "/", sum( !discord & pal ), 
              " (", round( 100 * sum(conc_pal_ambig) / sum( !discord & pal ), 2 ), 
-             "%) concordant palindromic SNPs had HRC MAF > 40%, flagging for removal" )
+             "%) concordant palindromic SNPs had reference panel MAF > 40%, ",
+             "flagging for removal" )
     
     # Remove flagged SNPs
     message2("Remove flagged SNPs")
@@ -385,20 +416,23 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
   #-------------------------------------------------------------------------------
   
   # Report the change in number of SNPs
-  message2( "After harmonizing GWAS and HRC SNPs, ", NROW(gw3), "/", NROW(gw2), " (", round( 100 * NROW(gw3) / NROW(gw2), 2 ), "%) remain" )
+  message2( "After harmonizing GWAS and reference panel SNPs, ", 
+            NROW(gw3), "/", NROW(gw2), " (", round( 100 * NROW(gw3) / NROW(gw2), 2 ), 
+            "%) remain" )
   
   # Check that CPRA is 100% identical now
   cpra_gw  <- paste( gw3$chr,  gw3$bp,  gw3$a2,   gw3$a1,   sep="_" )
   cpra_hrc <- paste( hrc3$chr, hrc3$bp, hrc3$ref, hrc3$alt, sep="_" )
   if( all( cpra_gw == cpra_hrc ) ){
-    message2("CPRA is now identical for all GWAS and HRC SNPs")
+    message2("CPRA is now identical for all GWAS and reference panel SNPs")
   }else{
     diff_cpra <- head( which( cpra_gw != cpra_hrc ) )
-    stop( paste( "Error: not all CPRA are identical for GWAS and HRC SNPs. Here are (up to) the first 6:", diff_cpra, collapse=" " ) )
+    stop( paste( "Error: not all CPRA are identical for GWAS and reference panel",
+                 "SNPs. Here are (up to) the first 6:", diff_cpra, collapse=" " ) )
   }
   
-  # Replace GWAS SNP names with HRC names
-  message2("Replace GWAS SNP names with HRC names")
+  # Replace GWAS SNP names with reference panel names
+  message2("Replace GWAS SNP names with reference panel names")
   gw3$SNP <- hrc3$snp
   
   
@@ -547,28 +581,49 @@ rm_genes_without_enough_snps <- function(maindir){
 #   run_magma
 #-------------------------------------------------------------------------------
 
-run_magma <- function(maindir){
+run_magma <- function( maindir, ld.panel ){
   
   # Create a job identifier
   job.id <- paste0( "m", sample( x=1:999, size=1 ) )
   
-  # Loop through chromosomes 
-  for( CHR in 1:22 ){
+  # If using HRC, run each chromosome separately
+  # If using 1000 Genomes, run all at once
+  if( ld.panel == "hrc" ){
     
-    # Create job name and log file name
-    jobname <- paste0( job.id, ".", CHR )
-    logfile <- paste0( maindir, "/logs/magma", CHR, ".log" )
+    # HRC: loop through chromosomes 
+    for( CHR in 1:22 ){
+      
+      # Create job name and log file name
+      jobname <- paste0( job.id, ".", CHR )
+      logfile <- paste0( maindir, "/logs/magma", CHR, ".log" )
+      
+      # Run
+      message2( "Submitting job to the cluster for chromosome: ", CHR )
+      cmd <- paste( "sbatch",
+                    "-J", jobname,
+                    "-o", logfile,
+                    "-e", logfile,
+                    "/home/heilbron/repos/brett/e1_run_magma_hrc.sh",
+                    CHR, maindir )
+      system(cmd)
+    }
+  }else if( ld.panel == "g1000" ){
     
-    # Run
-    message( "Submitting job to the cluster for chromosome: ", CHR )
+    # 1000 Genomes
+    message2("Submitting job to the cluster")
+    logfile <- paste0( maindir, "/logs/magma.log" )
     cmd <- paste( "sbatch",
-                  "-J", jobname,
+                  "-J", job.id,
                   "-o", logfile,
                   "-e", logfile,
-                  "/home/heilbron/repos/brett/e1_run_magma.sh",
-                  CHR, maindir )
+                  "/home/heilbron/repos/brett/e2_run_magma_g1000.sh",
+                  maindir )
     system(cmd)
+  }else{
+    stop("ld.panel must be either 'hrc' or 'g1000'")
   }
+  
+  # Wait until all jobs are finished before proceeding
   ensure_finished_jobs(job.id)
 }
 
@@ -859,6 +914,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
 #-------------------------------------------------------------------------------
 
 brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
+                   ld.panel   = "hrc",
                    gw.file    = "/home/heilbron/projects/pops/analyses/pd/meta5_raw.tab.gz",
                    chr.bp.col = "SNP",
                    chr.col    = NULL,
@@ -887,6 +943,9 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   #   Input descriptions
   #-------------------------------------------------------------------------------
   
+  #   maindir:    Main directory in which to store results
+  #   ld.panel:   Which LD reference panel should be used? Options are either: 
+  #               "hrc" or "g1000".
   #   gw.file:    GWAS file name
   #   chr.bp.col: Optional. The name of a GWAS column containing chromosome and bp 
   #               information separated by a punctuation character. Must be
@@ -931,6 +990,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   # Print inputs
   message_header("Print inputs")
   message2( "Main directory: ", maindir )
+  message2( "LD reference panel: ", ld.panel )
   message2( "GWAS file: ", gw.file )
   message2( "Chromosome/position column name: ", chr.bp.col)
   message2( "Chromosome column name: ", chr.col )
@@ -953,7 +1013,8 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   if(check.args){
     message_header("Check arguments")
     message2("Checking arguments")
-    check_arguments( gw.file    = gw.file,
+    check_arguments( ld.panel   = ld.panel,
+                     gw.file    = gw.file,
                      chr.bp.col = chr.bp.col,
                      chr.col    = chr.col,
                      bp.col     = bp.col,
@@ -1047,6 +1108,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
     rm_genes_without_enough_snps( maindir = maindir )
   }
   
+  
   #-------------------------------------------------------------------------------
   #   Run MAGMA
   #-------------------------------------------------------------------------------
@@ -1056,7 +1118,8 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
                         mag_covar_files ) ) ){
     message2("Output files exist, skipping")
   }else{
-    run_magma( maindir = maindir )
+    run_magma( maindir  = maindir,
+               ld.panel = ld.panel )
   }
   
   

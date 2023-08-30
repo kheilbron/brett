@@ -6,7 +6,7 @@
 # module load PLINK/2.00a3.6-GCC-11.3.0
 
 # Make scratch directories to work in
-scratch_dir <- file.path( "/scratch-local", Sys.getenv("USER"), "high_quality_HRC" )
+scratch_dir <- file.path( "/scratch-shared", Sys.getenv("USER"), "high_quality_HRC" )
 plink_dir   <- file.path( scratch_dir, "plink_freqs" )
 rare_dir    <- file.path( scratch_dir, "rare_snp_files" )
 common_dir  <- file.path( scratch_dir, "common_snp_files" )
