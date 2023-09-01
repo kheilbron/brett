@@ -129,9 +129,9 @@ check_arguments <- function( ld.panel   = NULL,
   }
   
   # Position must be a positive integer
-  if( bp.col %in% names(gw) ){
+  if( !is.null(bp.col) ){
     if( !is.integer( gw[[bp.col]] ) ) stop("Positions must be integers")
-    if( any(   gw[[bp.col]] ) < 1  )  stop("Positions must be > 0")
+    if( any( gw[[bp.col]] ) < 1  )  stop("Positions must be > 0")
   }
   
   # Alleles must be characters
@@ -1044,8 +1044,6 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   peaks_file            <- file.path( maindir, "peaks.tsv" )
   raw_snp_map_file      <- file.path( maindir, "snps_mapped_to_genes.genes.annot" )
   clean_snp_map_file    <- file.path( maindir, "snps_mapped_to_genes_filtered.genes.annot" )
-  mag_sumstats_files    <- file.path( maindir, "magma", paste0( "chr", 1:22, ".genes.out" ) )
-  mag_covar_files       <- file.path( maindir, "magma", paste0( "chr", 1:22, ".genes.raw" ) )
   mag_ss_collated_file  <- file.path( maindir, "magma.genes.out" )
   mag_cov_collated_file <- file.path( maindir, "magma.genes.raw" )
   mag_plots_file        <- file.path( maindir, "magma_plots.pdf" )
@@ -1053,6 +1051,17 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   pops_marg_file        <- file.path( maindir, "pops.marginals" )
   pops_pred_file        <- file.path( maindir, "pops.preds" )
   pops_plots_file       <- file.path( maindir, "pops_plots.pdf" )
+  
+  # Assign output file names that are dependent on the reference panel
+  if( ld.panel == "hrc" ){
+    mag_sumstats_files    <- file.path( maindir, "magma", paste0( "chr", 1:22, ".genes.out" ) )
+    mag_covar_files       <- file.path( maindir, "magma", paste0( "chr", 1:22, ".genes.raw" ) )
+  }else if( ld.panel == "g1000" ){
+    mag_sumstats_files    <- mag_ss_collated_file
+    mag_covar_files       <- mag_cov_collated_file
+  }else{
+    stop("ld.panel must be either 'hrc' or 'g1000'")
+  }
   
   
   #-------------------------------------------------------------------------------
