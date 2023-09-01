@@ -1078,6 +1078,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
     
   }else{
     format_gwas_and_snp_loc_files( maindir    = maindir,
+                                   ld.panel   = ld.panel,
                                    gw.file    = gw.file,
                                    chr.bp.col = chr.bp.col,
                                    chr.col    = chr.col,
