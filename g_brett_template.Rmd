@@ -5,7 +5,6 @@ output:
   html_document:
     toc: true
     toc_float: true
-    number_sections: true
 params:
   maindir: ""
   ld.panel: ""
@@ -31,10 +30,10 @@ gw.file <- params$gw.file
 ```
 
 # Inputs {.tabset}
+## Inputs
 ```{r inputs, echo=FALSE}
 
 # Print inputs
-cat("## Inputs")
 library(DT)
 input_df <- data.frame( Argument=names(params), Description="" )
 for( i in seq_len( NROW(input_df) ) ){
@@ -44,9 +43,12 @@ for( i in seq_len( NROW(input_df) ) ){
 }
 datatable( data    = input_df,
            caption = "Inputs used to generate this report" )
+```
+
+## GWAS file
+```{r gwas_file, echo=FALSE}
 
 # Show the first 5 rows of the GWAS file
-cat("## GWAS file")
 library(data.table)
 gw <- fread( file=gw.file, nrows=5 )
 datatable( data    = gw, 
