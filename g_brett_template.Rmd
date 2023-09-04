@@ -25,13 +25,13 @@ params:
   check.args: ""
 ---
 
-```{r simplify_variable_names echo=FALSE}
+```{r simplify_variable_names, echo=FALSE}
 # Set up shorter parameter names
 gw.file <- params$gw.file
 ```
 
 # Inputs {.tabset}
-```{r inputs echo=FALSE}
+```{r inputs, echo=FALSE}
 
 # Print inputs
 cat("## Inputs")
@@ -54,7 +54,7 @@ datatable( data    = gw,
 ```
 
 # GWAS peaks
-```{r gwas_peaks echo=FALSE}
+```{r gwas_peaks, echo=FALSE}
 peaks <- fread( file=file.path( maindir, "peaks.tsv" ) )
 names(peaks) <- toupper( names(peaks) )
 peak_caption <- paste( "A table of GWAS hits. SNP = variant identifier,",
