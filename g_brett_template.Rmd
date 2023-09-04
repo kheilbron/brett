@@ -89,8 +89,8 @@ pops$GENE  <- genes$NAME[  match( pops$ENSGID, genes$ENSGID ) ]
 pops$CHR   <- genes$CHR[   match( pops$ENSGID, genes$ENSGID ) ]
 pops$START <- genes$START[ match( pops$ENSGID, genes$ENSGID ) ]
 pops$STOP  <- genes$END[   match( pops$ENSGID, genes$ENSGID ) ]
-pops$P_MAGMA <- mag$P[     match( pops$ENSGID, mag$GENE ) , ]
-pops$Z_MAGMA <- mag$ZSTAT[ match( pops$ENSGID, mag$GENE ) , ]
+pops$P_MAGMA <- mag$P[     match( pops$ENSGID, mag$GENE ) ]
+pops$Z_MAGMA <- mag$ZSTAT[ match( pops$ENSGID, mag$GENE ) ]
   
 # Subset to interesting columns
 gcols <- c( "GENE", "CHR", "START", "STOP", 
