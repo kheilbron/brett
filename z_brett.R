@@ -1201,24 +1201,24 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   }else{
     message2("Rendering an HTML report")
     library(rmarkdown)
-    params <- list( maindir    = maindir,
-                    ld.panel   = ld.panel,
-                    gw.file    = gw.file,
-                    chr.bp.col = chr.bp.col,
-                    chr.col    = chr.col,
-                    bp.col     = bp.col,
-                    a1.col     = a1.col,
-                    a2.col     = a2.col,
-                    p.col      = p.col,
-                    eaf.col    = eaf.col,
-                    n1.col     = n1.col,
-                    n0.col     = n0.col,
-                    n.col      = n.col,
-                    n          = n,
-                    z.or.p     = z.or.p,
-                    check.args = check.args )
+    args <- list( maindir    = maindir,
+                  ld.panel   = ld.panel,
+                  gw.file    = gw.file,
+                  chr.bp.col = chr.bp.col,
+                  chr.col    = chr.col,
+                  bp.col     = bp.col,
+                  a1.col     = a1.col,
+                  a2.col     = a2.col,
+                  p.col      = p.col,
+                  eaf.col    = eaf.col,
+                  n1.col     = n1.col,
+                  n0.col     = n0.col,
+                  n.col      = n.col,
+                  n          = n,
+                  z.or.p     = z.or.p,
+                  check.args = check.args )
     render( input       = "~/repos/brett/g_brett_template.Rmd", 
-            params      = params, 
+            params      = args, 
             output_file = html_file )
   }
   message_header("Done")
