@@ -295,7 +295,7 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
     message2("A study-wide effective sample size has been provided and will be applied to all SNPs")
     gw$N <- n
   }else if( "n1" %in% names(gw) & "n0" %in% names(gw) ){
-    message2("Columns for number cases and controls have been provided for each SNP, computing the effective sample size")
+    message2("Columns for number of cases and controls have been provided for each SNP, computing the effective sample size")
     gw$N <- n_eff( gw$n1, gw$n0 )
   }
   
@@ -1051,6 +1051,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   pops_marg_file        <- file.path( maindir, "pops.marginals" )
   pops_pred_file        <- file.path( maindir, "pops.preds" )
   pops_plots_file       <- file.path( maindir, "pops_plots.pdf" )
+  html_file             <- file.path( maindir, "report.html" )
   
   # Assign output file names that are dependent on the reference panel
   if( ld.panel == "hrc" ){
@@ -1187,6 +1188,38 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
     message2("Making POPS plots")
     pops_plots( maindir = maindir, 
                 z.or.p  = z.or.p )
+  }
+  
+  
+  #-------------------------------------------------------------------------------
+  #   Render an HTML report
+  #-------------------------------------------------------------------------------
+  
+  message_header("Render an HTML report")
+  if( file.exists(html_file) ){
+    message2("Output file exists, skipping")
+  }else{
+    message2("Rendering an HTML report")
+    library(rmarkdown)
+    params <- list( maindir    = maindir,
+                    ld.panel   = ld.panel,
+                    gw.file    = gw.file,
+                    chr.bp.col = chr.bp.col,
+                    chr.col    = chr.col,
+                    bp.col     = bp.col,
+                    a1.col     = a1.col,
+                    a2.col     = a2.col,
+                    p.col      = p.col,
+                    eaf.col    = eaf.col,
+                    n1.col     = n1.col,
+                    n0.col     = n0.col,
+                    n.col      = n.col,
+                    n          = n,
+                    z.or.p     = z.or.p,
+                    check.args = check.args )
+    render( input       = "~/repos/brett/g_brett_template.Rmd", 
+            params      = params, 
+            output_file = html_file )
   }
   message_header("Done")
 }

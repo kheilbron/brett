@@ -1,0 +1,32 @@
+---
+title: "Brett Report"
+author: "Karl Heilbron"
+output: html_document
+params:
+  maindir: ""
+  ld.panel: ""
+  gw.file: ""
+  chr.bp.col: ""
+  chr.col: ""
+  bp.col: ""
+  a1.col: ""
+  a2.col: ""
+  p.col: ""
+  eaf.col: ""
+  n1.col: ""
+  n0.col: ""
+  n.col: ""
+  n: ""
+  z.or.p: ""
+  check.args: ""
+---
+
+# Inputs
+This Brett report was generated using the following inputs:
+```{r}
+library(DT)
+input_df <- data.frame( Argument=names(params), Description=unlist(params) )
+datatable( data=input_df )
+```
+
+
