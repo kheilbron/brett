@@ -105,7 +105,7 @@ datatable( data     = pops[ , ..gcols ],
            caption  = genes_caption,
            rownames = FALSE,
            options  = list( order = list( list( 5, "desc" ) ) ) ) %>%
-  formatRound( columns = c( 'POPS', 'Z_MAGMA', 'P_POPS', 'P_MAGMA' ), 
+  formatRound( columns = c( 'POPS', 'Z_MAGMA', 'P_POPS' ), 
                digits  = 3 )
 ```
 
