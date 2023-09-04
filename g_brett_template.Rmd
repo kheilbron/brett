@@ -103,7 +103,7 @@ genes_caption <- paste( "A table of top genes based on POPS and MAGMA results.",
                         "MAGMA P value" )
 datatable( data    = pops[ , ..gcols ],
            caption = genes_caption,
-           order   = list( list( 5, "desc" ) ) )
+           options = list( order = list( list( 5, "desc" ) ) ) )
 ```
 
 
