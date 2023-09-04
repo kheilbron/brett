@@ -49,7 +49,7 @@ datatable( data    = gw,
 
 # GWAS peaks
 ```{r echo=FALSE}
-peaks <- fread( file=file.path( maindir, "" ) )
+peaks <- fread( file=file.path( maindir, "peaks.tsv" ) )
 names(peaks) <- toupper( names(peaks) )
 peak_caption <- paste( "A table of GWAS hits. SNP = variant identifier,",
                         "CHR = chromosome, BP = position, LO = leftmost",
