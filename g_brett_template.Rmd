@@ -104,7 +104,7 @@ genes_caption <- paste( "A table of top genes based on POPS and MAGMA results.",
 datatable( data     = pops[ , ..gcols ],
            caption  = genes_caption,
            rownames = FALSE,
-           options  = list( order = list( list( 5, "desc" ) ) ) ) %>%
+           options  = list( order = list( list( 4, "desc" ) ) ) ) %>%
   formatRound( columns = c( 'POPS', 'Z_MAGMA', 'P_POPS' ), 
                digits  = 3 )
 ```
