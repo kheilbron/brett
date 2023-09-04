@@ -27,8 +27,9 @@ gw.file <- params$gw.file
 ```
 
 # Inputs
-This Brett report was generated using the following inputs:
 ```{r echo=FALSE}
+
+# Print inputs
 library(DT)
 input_df <- data.frame( Argument=names(params), Description="" )
 for( i in seq_len( NROW(input_df) ) ){
@@ -36,16 +37,26 @@ for( i in seq_len( NROW(input_df) ) ){
     input_df$Description[i] <- params[[i]]
   }
 }
-datatable( data=input_df )
-```
+datatable( data    = input_df,
+           caption = "Inputs used to generate this report" )
 
-Here are the first 5 rows of the GWAS file:
-```{r echo=FALSE}
+# Show the first 5 rows of the GWAS file
 library(data.table)
 gw <- fread( file=gw.file, nrows=5 )
-print(gw)
+datatable( data    = gw, 
+           caption = "The first 5 rows of the GWAS file" )
 ```
 
-
+# GWAS peaks
+```{r echo=FALSE}
+peaks <- fread( file=file.path( maindir, "" ) )
+names(peaks) <- toupper( names(peaks) )
+peak_caption <- paste( "A table of GWAS hits. SNP = variant identifier,",
+                        "CHR = chromosome, BP = position, LO = leftmost",
+                        "boundary of the peak, HI = rightmost boundary of",
+                        "the peak, P = P value" )
+datatable( data    = peaks, 
+           caption = peak_caption )
+```
 
 
