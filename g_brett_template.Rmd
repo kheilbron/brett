@@ -29,7 +29,7 @@ params:
 gw.file <- params$gw.file
 ```
 
-# Inputs {.tabset}
+# Inputs {.tabset-pills}
 ## Inputs
 ```{r inputs, echo=FALSE}
 
@@ -101,9 +101,12 @@ genes_caption <- paste( "A table of top genes based on POPS and MAGMA results.",
                         "POPS = POP score, Z_MAGMA = MAGMA z-score, P_POPS =",
                         "P value associated with the POP score, P_MAGMA =",
                         "MAGMA P value" )
-datatable( data    = pops[ , ..gcols ],
-           caption = genes_caption,
-           options = list( order = list( list( 5, "desc" ) ) ) )
+datatable( data     = pops[ , ..gcols ],
+           caption  = genes_caption,
+           rownames = FALSE,
+           options  = list( order = list( list( 5, "desc" ) ) ) ) %>%
+  formatRound( columns = c( 'POPS', 'Z_MAGMA', 'P_POPS', 'P_MAGMA' ), 
+               digits  = 3 )
 ```
 
 
