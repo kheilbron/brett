@@ -67,4 +67,46 @@ datatable( data    = peaks,
            caption = peak_caption )
 ```
 
+# Top genes
+```{r top_genes, echo=FALSE}
+
+# Read in POPS results, calculate P values
+pops_file <- file.path( maindir, "pops.preds" )
+pops <- fread(pops_file)
+names(pops)[ names(pops) == "PoPS_Score" ] <- "POPS"
+pops$P_POPS <- z_to_p( z=pops$pops )
+
+# Read in MAGMA results
+mag_file <- file.path( maindir, "magma.genes.out" )
+mag      <- fread(mag_file)
+
+# Read in gene locations
+gene_file <- "/home/heilbron/projects/pops/data/gene_locations.tsv"
+genes     <- fread(gene_file)
+
+# Add gene names and MAGMA results to POPS results
+pops$GENE  <- genes$NAME[  match( pops$ENSGID, genes$ENSGID ) ]
+pops$CHR   <- genes$CHR[   match( pops$ENSGID, genes$ENSGID ) ]
+pops$START <- genes$START[ match( pops$ENSGID, genes$ENSGID ) ]
+pops$STOP  <- genes$END[   match( pops$ENSGID, genes$ENSGID ) ]
+pops$P_MAGMA <- mag$P[     match( pops$ENSGID, mag$GENE ) , ]
+pops$Z_MAGMA <- mag$ZSTAT[ match( pops$ENSGID, mag$GENE ) , ]
+  
+# Subset to interesting columns
+gcols <- c( "GENE", "CHR", "START", "STOP", 
+            "POPS", "Z_MAGMA", "P_POPS", "P_MAGMA" )
+genes_caption <- paste( "A table of top genes based on POPS and MAGMA results.",
+                        "GENE = HGNC gene name, CHR = chromosome, START =",
+                        "leftmost gene boundary, STOP = rightmost gene boundary,",
+                        "POPS = POP score, Z_MAGMA = MAGMA z-score, P_POPS =",
+                        "P value associated with the POP score, P_MAGMA =",
+                        "MAGMA P value" )
+datatable( data    = pops[ , ..gcols ],
+           caption = genes_caption,
+           order   = list( list( 5, "desc" ) ) )
+```
+
+
+
+
 

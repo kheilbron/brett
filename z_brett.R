@@ -827,7 +827,6 @@ pops_plots <- function( maindir, z.or.p="z" ){
   pops$p <- z_to_p( z=pops$pops )
   
   # Add gene names and locations to POPS results
-  genes <- fread("/home/heilbron/projects/pops/data/gene_locations.tsv")
   pops$gene  <- genes$NAME[  match( pops$ENSGID, genes$ENSGID ) ]
   pops$CHR   <- genes$CHR[   match( pops$ENSGID, genes$ENSGID ) ]
   pops$START <- genes$START[ match( pops$ENSGID, genes$ENSGID ) ]
