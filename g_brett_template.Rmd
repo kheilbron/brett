@@ -21,9 +21,14 @@ params:
   check.args: ""
 ---
 
+```{r echo=FALSE}
+# Set up shorter parameter names
+gw.file <- params$gw.file
+```
+
 # Inputs
 This Brett report was generated using the following inputs:
-```{r}
+```{r echo=FALSE}
 library(DT)
 input_df <- data.frame( Argument=names(params), Description="" )
 for( i in seq_len( NROW(input_df) ) ){
@@ -33,5 +38,14 @@ for( i in seq_len( NROW(input_df) ) ){
 }
 datatable( data=input_df )
 ```
+
+Here are the first 5 rows of the GWAS file:
+```{r echo=FALSE}
+library(data.table)
+gw <- fread( file=gw.file, nrows=5 )
+print(gw)
+```
+
+
 
 
