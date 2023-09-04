@@ -1,7 +1,11 @@
 ---
 title: "Brett Report"
 author: "Karl Heilbron"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
 params:
   maindir: ""
   ld.panel: ""
@@ -21,15 +25,16 @@ params:
   check.args: ""
 ---
 
-```{r echo=FALSE}
+```{r simplify_variable_names echo=FALSE}
 # Set up shorter parameter names
 gw.file <- params$gw.file
 ```
 
-# Inputs
-```{r echo=FALSE}
+# Inputs {.tabset}
+```{r inputs echo=FALSE}
 
 # Print inputs
+cat("## Inputs")
 library(DT)
 input_df <- data.frame( Argument=names(params), Description="" )
 for( i in seq_len( NROW(input_df) ) ){
@@ -41,6 +46,7 @@ datatable( data    = input_df,
            caption = "Inputs used to generate this report" )
 
 # Show the first 5 rows of the GWAS file
+cat("## GWAS file")
 library(data.table)
 gw <- fread( file=gw.file, nrows=5 )
 datatable( data    = gw, 
@@ -48,7 +54,7 @@ datatable( data    = gw,
 ```
 
 # GWAS peaks
-```{r echo=FALSE}
+```{r gwas_peaks echo=FALSE}
 peaks <- fread( file=file.path( maindir, "peaks.tsv" ) )
 names(peaks) <- toupper( names(peaks) )
 peak_caption <- paste( "A table of GWAS hits. SNP = variant identifier,",
