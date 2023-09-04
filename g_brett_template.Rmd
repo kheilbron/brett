@@ -74,7 +74,7 @@ datatable( data    = peaks,
 pops_file <- file.path( maindir, "pops.preds" )
 pops <- fread(pops_file)
 names(pops)[ names(pops) == "PoPS_Score" ] <- "POPS"
-pops$P_POPS <- z_to_p( z=pops$pops )
+pops$P_POPS <- z_to_p( z=pops$POPS )
 
 # Read in MAGMA results
 mag_file <- file.path( maindir, "magma.genes.out" )
