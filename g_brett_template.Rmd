@@ -168,39 +168,31 @@ datatable( data     = pops[ , ..gcols ],
                digits  = 3 )
 ```
 
-# Test section
-```{r test_section, results="asis"}
-for( i in 1 ){
-  pops_locus_plot <- file.path( "plots", "pops", paste0( "region_", i, "_rs35749011.jpg" ) )
-  cat( paste0( "![](", pops_locus_plot, ")" ), "\n")
-}
-```
-
 # Locus plots
 ```{r locus_plots, echo=FALSE, results="asis"}
 
 # Loop through peaks
-setwd(params$maindir)
-for( i in seq_len( NROW(peaks) ) ){
+opeaks <- peaks[ order( peaks$CHR, peaks$BP ) , ]
+for( i in seq_len( NROW(opeaks) ) ){
   
   # Set up the sub-heading for the locus
-  locus_subheading <- paste0( "\n## Locus ", i, ": ", peaks$SNP[i], " (", 
-                              peaks$NEAREST_GENE[i], ") {.tabset .tabset-pills}\n")
+  locus_subheading <- paste0( "\n## Locus ", i, ": ", opeaks$SNP[i], " (", 
+                              opeaks$NEAREST_GENE[i], ") {.tabset .tabset-pills}\n")
   cat(locus_subheading)
   
   # Insert the POPS subheading and plot
   cat("\n### POPS\n")
   pops_locus_plot <- file.path( "plots", "pops", 
-                                paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  cat( "\n", pops_locus_plot, "\n" )
-  # cat( paste0( "![](", pops_locus_plot, ")" ), "\n")
+                                paste0( "region_", i, "_", opeaks$SNP[i], ".jpg" ) )
+  # cat( "\n", pops_locus_plot, "\n" )
+  cat( "\n", paste0( "![](", pops_locus_plot, ")" ), "\n" )
   
   # Insert the MAGMA subheading and plot
   cat("\n### MAGMA\n")
   mag_locus_plot <- file.path( "plots", "magma", 
-                               paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  cat( "\n", mag_locus_plot, "\n" )
-  # cat( paste0( "![](", mag_locus_plot, ")" ), "\n")
+                               paste0( "region_", i, "_", opeaks$SNP[i], ".jpg" ) )
+  # cat( "\n", mag_locus_plot, "\n" )
+  cat( "\n", paste0( "![](", mag_locus_plot, ")" ), "\n" )
 }
 ```
 
