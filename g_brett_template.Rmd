@@ -29,7 +29,7 @@ params:
 gw.file <- params$gw.file
 ```
 
-# Inputs {.tabset-pills}
+# Inputs {.tabset .tabset-pills}
 ## Inputs
 ```{r inputs, echo=FALSE}
 
@@ -68,7 +68,7 @@ datatable( data    = peaks,
 ```
 
 # Top genes
-```{r top_genes, echo=FALSE}
+```{r top_genes, echo=FALSE, warning=FALSE}
 
 # Read in POPS results, calculate P values
 pops_file <- file.path( maindir, "pops.preds" )
@@ -107,6 +107,17 @@ datatable( data     = pops[ , ..gcols ],
            options  = list( order = list( list( 4, "desc" ) ) ) ) %>%
   formatRound( columns = c( 'POPS', 'Z_MAGMA', 'P_POPS' ), 
                digits  = 3 )
+```
+
+# POPS and MAGMA distributions
+## POPS
+```{r pops_distribution, echo=FALSE}
+plot( density(pops$POPS) )
+```
+
+## MAGMA
+```{r magma_distribution, echo=FALSE}
+plot( density(pops$Z_MAGMA) )
 ```
 
 
