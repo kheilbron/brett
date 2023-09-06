@@ -172,6 +172,7 @@ datatable( data     = pops[ , ..gcols ],
 ```{r locus_plots, echo=FALSE, results="asis"}
 
 # Loop through peaks
+setwd(params$maindir)
 for( i in seq_len( NROW(peaks) ) ){
   
   # Set up the sub-heading for the locus
@@ -184,7 +185,8 @@ for( i in seq_len( NROW(peaks) ) ){
   cat("\n### POPS")
   pops_locus_plot <- file.path( "plots", "pops", 
                                 paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  include_graphics(pops_locus_plot)
+  print( getwd() )
+  # include_graphics(pops_locus_plot)
   
   # Insert the MAGMA subheading and plot
   cat("\n### MAGMA")
