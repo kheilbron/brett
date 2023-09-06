@@ -1214,6 +1214,9 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   }else{
     message2("Rendering an HTML report")
     library(rmarkdown)
+    rmd_file <- file.path( maindir, "report.Rmd" )
+    file.copy( from = "~/repos/brett/g_brett_template.Rmd",
+               to   = rmd_file, overwrite=TRUE )
     args <- list( maindir    = maindir,
                   ld.panel   = ld.panel,
                   gw.file    = gw.file,
@@ -1230,7 +1233,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
                   n          = n,
                   z.or.p     = z.or.p,
                   check.args = check.args )
-    render( input       = "~/repos/brett/g_brett_template.Rmd", 
+    render( input       = rmd_file, 
             params      = args, 
             output_file = html_file )
   }
