@@ -168,24 +168,24 @@ datatable( data     = pops[ , ..gcols ],
                digits  = 3 )
 ```
 
-# Locus plots
+# Locus plots {.tabset .tabset-pills}
 ```{r locus_plots, echo=FALSE, results="asis"}
 
 # Loop through peaks
 for( i in seq_len( NROW(peaks) ) ){
   
   # Set up the sub-heading for the locus
-  locus_subheading <- paste0( "## Locus ", i, ": ", peaks$SNP[i], " (", peaks$NEAREST_GENE[i], ")")
+  locus_subheading <- paste0( "\n## Locus ", i, ": ", peaks$SNP[i], " (", peaks$NEAREST_GENE[i], ")")
   cat(locus_subheading)
   library(knitr)
   
   # Insert the POPS subheading and plot
-  cat("### POPS")
+  cat("\n### POPS")
   pops_locus_plot <- file.path( "plots", "pops", paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
   # include_graphics(pops_locus_plot)
   
   # Insert the MAGMA subheading and plot
-  cat("### MAGMA")
+  cat("\n### MAGMA")
   mag_locus_plot <- file.path( "plots", "magma", paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
   # include_graphics(mag_locus_plot)
 }
