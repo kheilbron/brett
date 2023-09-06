@@ -170,8 +170,10 @@ datatable( data     = pops[ , ..gcols ],
 
 # Test section
 ```{r test_section}
-pops_locus_plot <- file.path( "plots", "pops", paste0( "region_1_rs35749011.jpg" ) )
-knitr::include_graphics(pops_locus_plot)
+for( i in 1 ){
+  pops_locus_plot <- file.path( "plots", "pops", paste0( "region_", i, "_rs35749011.jpg" ) )
+  knitr::include_graphics(pops_locus_plot)
+}
 ```
 
 # Locus plots {.tabset .tabset-pills}
