@@ -684,7 +684,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
   library(data.table)
   peaks_file <- file.path( maindir, "peaks.tsv" )
   peaks <- fread(peaks_file)
-  peaks <- peaks[ order( peaks$chr, peaks$bp ) , ]
+  # peaks <- peaks[ order( peaks$chr, peaks$bp ) , ]
   
   # Read in MAGMA files
   message2("Read in MAGMA files")
@@ -745,7 +745,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     mag_plot_file <- file.path( mag_plot_dir, paste0( "region_", i, "_", 
                                                       peaks$snp[i], ".jpg" ) )
-    jpeg( filename=mag_plot_file )
+    jpeg( filename=mag_plot_file, quality=95 )
     
     # Set up the plot
     ymax <- max(locus$Y) *1.03
@@ -819,7 +819,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
   library(data.table)
   peaks_file <- file.path( maindir, "peaks.tsv" )
   peaks <- fread(peaks_file)
-  peaks <- peaks[ order( peaks$chr, peaks$bp ) , ]
+  # peaks <- peaks[ order( peaks$chr, peaks$bp ) , ]
   
   # Read in gene locations
   message2("Read in gene locations")
@@ -882,7 +882,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     pops_plot_file <- file.path( pops_plot_dir, paste0( "region_", i, "_", 
                                                         peaks$snp[i], ".jpg" ) )
-    jpeg( filename=pops_plot_file )
+    jpeg( filename=pops_plot_file, quality=95 )
     
     # Set up the plot
     ymax <- max(locus$Y) *1.03
