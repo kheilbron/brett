@@ -173,7 +173,7 @@ datatable( data     = pops[ , ..gcols ],
 
 # Loop through peaks
 # peaks <- peaks[ order( peaks$CHR, peaks$BP ) , ]
-for( i in seq_len( NROW(opeaks) ) ){
+for( i in seq_len( NROW(peaks) ) ){
   
   # Set up the sub-heading for the locus
   locus_subheading <- paste0( "\n## Locus ", i, ": ", peaks$SNP[i], " (", 
