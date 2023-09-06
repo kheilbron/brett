@@ -177,19 +177,18 @@ for( i in seq_len( NROW(peaks) ) ){
   
   # Set up the sub-heading for the locus
   locus_subheading <- paste0( "\n## Locus ", i, ": ", peaks$SNP[i], " (", 
-                              peaks$NEAREST_GENE[i], ") {.tabset .tabset-pills}")
+                              peaks$NEAREST_GENE[i], ") {.tabset .tabset-pills}\n")
   cat(locus_subheading)
   library(knitr)
   
   # Insert the POPS subheading and plot
-  cat("\n### POPS")
+  cat("\n### POPS\n")
   pops_locus_plot <- file.path( "plots", "pops", 
                                 paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  print( getwd() )
-  # include_graphics(pops_locus_plot)
+  include_graphics(pops_locus_plot)
   
   # Insert the MAGMA subheading and plot
-  cat("\n### MAGMA")
+  cat("\n### MAGMA\n")
   mag_locus_plot <- file.path( "plots", "magma", 
                                paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
   # include_graphics(mag_locus_plot)
