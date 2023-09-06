@@ -109,15 +109,15 @@ datatable( data     = pops[ , ..gcols ],
                digits  = 3 )
 ```
 
-# POPS and MAGMA distributions
+# POPS and MAGMA distributions {.tabset .tabset-pills}
 ## POPS
 ```{r pops_distribution, echo=FALSE}
-plot( density(pops$POPS) )
+plot( density(pops$POPS), main="", las=1, lwd=2, col="grey30" )
 ```
 
 ## MAGMA
 ```{r magma_distribution, echo=FALSE}
-plot( density( na.omit(pops$Z_MAGMA) ) )
+plot( density( na.omit(pops$Z_MAGMA) ), main="", las=1, lwd=2, col="grey30" )
 ```
 
 
