@@ -192,14 +192,14 @@ for( i in seq_len( NROW(peaks) ) ){
   cat("\n### POPS\n")
   pops_locus_plot <- file.path( "plots", "pops", 
                                 paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  cat( file.exists(pops_locus_plot) )
+  cat( "\n", file.exists(pops_locus_plot), "\n" )
   # cat( paste0( "![](", pops_locus_plot, ")" ), "\n")
   
   # Insert the MAGMA subheading and plot
   cat("\n### MAGMA\n")
   mag_locus_plot <- file.path( "plots", "magma", 
                                paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  cat( file.exists(mag_locus_plot) )
+  cat( "\n", file.exists(mag_locus_plot), "\n" )
   # cat( paste0( "![](", mag_locus_plot, ")" ), "\n")
 }
 ```
