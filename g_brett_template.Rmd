@@ -169,10 +169,10 @@ datatable( data     = pops[ , ..gcols ],
 ```
 
 # Test section
-```{r test_section}
+```{r test_section, results="asis"}
 for( i in 1 ){
   pops_locus_plot <- file.path( "plots", "pops", paste0( "region_", i, "_rs35749011.jpg" ) )
-  knitr::include_graphics(pops_locus_plot)
+  cat( paste0( "![](", pops_locus_plot, ")" ), "\n")
 }
 ```
 
