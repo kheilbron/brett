@@ -191,7 +191,7 @@ for( i in seq_len( NROW(peaks) ) ){
   cat("\n### POPS\n")
   pops_locus_plot <- file.path( "plots", "pops", 
                                 paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  include_graphics(pops_locus_plot)
+  # include_graphics(pops_locus_plot)
   
   # Insert the MAGMA subheading and plot
   cat("\n### MAGMA\n")
