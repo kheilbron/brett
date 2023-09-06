@@ -117,7 +117,7 @@ plot( density(pops$POPS) )
 
 ## MAGMA
 ```{r magma_distribution, echo=FALSE}
-plot( density(pops$Z_MAGMA) )
+plot( density( na.omit(pops$Z_MAGMA) ) )
 ```
 
 
