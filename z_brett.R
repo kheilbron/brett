@@ -718,10 +718,12 @@ magma_plots <- function( maindir, z.or.p="z" ){
   message2("Add gene locations to MAGMA")
   mag$NAME <- genes$NAME[ match( mag$GENE, genes$GENE ) ]
   
+  # Make an output directory to store plots
+  mag_plot_dir <- file.path( maindir, "plots", "magma" )
+  dir.create( path=mag_plot_dir, showWarnings=FALSE, recursive=TRUE )
+  
   # Loop through loci
   message2("Loop through loci, making a plot for each")
-  mag_plot_file <- file.path( maindir, "magma_plots.pdf" )
-  pdf( file=mag_plot_file )
   for( i in seq_len( NROW(peaks) ) ){
     
     # Subset MAGMA results
@@ -739,6 +741,11 @@ magma_plots <- function( maindir, z.or.p="z" ){
                       mag$STOP  > xmin - 2 &
                       mag$START < xmax + 2 , ]
     }
+    
+    # Initialize the output file
+    mag_plot_file <- file.path( mag_plot_dir, paste0( "region_", i, "_", 
+                                                      peaks$snp[i], ".jpg" ) )
+    jpeg( filename=mag_plot_file )
     
     # Set up the plot
     ymax <- max(locus$Y) *1.03
@@ -773,8 +780,8 @@ magma_plots <- function( maindir, z.or.p="z" ){
       text( x=xmax + x_buffer, y=ys[out_right], labels=locus$NAME[out_right], 
             adj=c(1,0.5), col="grey30" )
     }
+    dev.off()
   }
-  dev.off()
 }
 
 
@@ -847,9 +854,11 @@ pops_plots <- function( maindir, z.or.p="z" ){
   pops$START <- pops$START/1e6
   pops$STOP  <- pops$STOP/1e6
   
+  # Make an output directory to store plots
+  pops_plot_dir <- file.path( maindir, "plots", "pops" )
+  dir.create( path=pops_plot_dir, showWarnings=FALSE, recursive=TRUE )
+  
   # Loop through loci
-  pops_plot_file <- file.path( maindir, "pops_plots.pdf" )
-  pdf( file=pops_plot_file )
   for( i in seq_len( NROW(peaks) ) ){
     
     # Subset PoPS results
@@ -869,6 +878,11 @@ pops_plots <- function( maindir, z.or.p="z" ){
         pops$START < xmax + 2
       locus <- pops[ idx , ]
     }
+    
+    # Initialize the output file
+    pops_plot_file <- file.path( pops_plot_dir, paste0( "region_", i, "_", 
+                                                        peaks$snp[i], ".jpg" ) )
+    jpeg( filename=pops_plot_file )
     
     # Set up the plot
     ymax <- max(locus$Y) *1.03
@@ -903,8 +917,8 @@ pops_plots <- function( maindir, z.or.p="z" ){
       text( x=xmax + x_buffer, y=ys[out_right], labels=locus$gene[out_right], 
             adj=c(1,0.5), col="grey30" )
     }
+    dev.off()
   }
-  dev.off()
 }
 
 
