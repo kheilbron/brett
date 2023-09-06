@@ -177,6 +177,7 @@ for( i in seq_len( NROW(peaks) ) ){
   # Set up the sub-heading for the locus
   locus_subheading <- paste0( "## Locus ", i, ": ", peaks$snp[i], " (", peaks$NEAREST_GENE, ")")
   cat(locus_subheading)
+  library(knitr)
   
   # Insert the POPS subheading and plot
   cat("### POPS")
