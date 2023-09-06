@@ -168,6 +168,12 @@ datatable( data     = pops[ , ..gcols ],
                digits  = 3 )
 ```
 
+# Test section
+```{r test_section}
+pops_locus_plot <- file.path( "plots", "pops", paste0( "region_1_rs35749011.jpg" ) )
+knitr::include_graphics(pops_locus_plot)
+```
+
 # Locus plots {.tabset .tabset-pills}
 ```{r locus_plots, echo=FALSE, results="asis"}
 
