@@ -92,6 +92,12 @@ plot( density(pops$POPS), main="", las=1, lwd=2, col="grey30" )
 plot( density( na.omit(pops$Z_MAGMA) ), main="", las=1, lwd=2, col="grey30" )
 ```
 
+## POPS v. MAGMA
+```{r pops_v_magma, echo=FALSE}
+plot( x=pops$Z_MAGMA, y=pops$POPS, main="", las=1, col="grey30",
+      xlab="MAGMA z-score", ylab="POP Score" )
+```
+
 # GWAS peaks
 ```{r gwas_peaks, echo=FALSE}
 
@@ -102,7 +108,8 @@ names(peaks) <- toupper( names(peaks) )
 # Add nearest gene
 # Add top POPS in locus
 peaks$NEAREST_GENE <- NA
-peaks$TOP_POPS     <- NA
+peaks$POPS_GENE <- NA
+peaks$POPS     <- NA
 for( i in seq_len( NROW(peaks) ) ){
   
   # Subset to the focal locus
@@ -132,18 +139,20 @@ for( i in seq_len( NROW(peaks) ) ){
   
   # Find top POPS
   pops_idx <- which( locus$POPS == max(locus$POPS) )
-  peaks$TOP_POPS[i] <- paste( locus$GENE[pops_idx], collapse="; " )
+  peaks$POPS_GENE[i] <- paste( locus$GENE[pops_idx], collapse="; " )
+  peaks$POPS[i] <- locus$POPS[ pops_idx[1] ]
 }
 
 # Print table
-gcols_peaks <- c( "NEAREST_GENE", "TOP_POPS", "SNP", "CHR", "BP", "LO", "HI", "P" )
-peak_caption <- paste( "A table of GWAS hits. NEAREST_GENE = gene nearest to the",
-                       "lead variant, TOP_POPS = gene with the highest POPS in",
-                       "the locus, SNP = variant identifier, CHR = chromosome,",
-                       "BP = position, LO = leftmost boundary of the peak, HI =",
-                       "rightmost boundary of the peak, P = P value" )
+gcols_peaks <- c( "SNP", "CHR", "BP", "LO", "HI", "P", "NEAREST_GENE", "POPS_GENE" )
+peak_caption <- paste( "A table of GWAS hits. SNP = variant identifier, CHR =",
+                       "chromosome, BP = position, LO = leftmost boundary of the",
+                       "peak, HI = rightmost boundary of the peak, P = P value,",
+                       "NEAREST_GENE = gene nearest to the lead variant, POPS_GENE",
+                       "= gene with the highest POPS in the locus.")
 datatable( data    = peaks[ , ..gcols_peaks ], 
-           caption = peak_caption )
+           caption = peak_caption,
+           filter = list( position = 'top', clear = FALSE ) )
 ```
 
 # Top genes
@@ -163,6 +172,7 @@ genes_caption <- paste( "A table of top genes based on POPS and MAGMA results.",
 datatable( data     = pops[ , ..gcols ],
            caption  = genes_caption,
            rownames = FALSE,
+           filter = list( position = 'top', clear = FALSE ),
            options  = list( order = list( list( 4, "desc" ) ) ) ) %>%
   formatRound( columns = c( 'POPS', 'Z_MAGMA', 'P_POPS' ), 
                digits  = 3 )
