@@ -105,6 +105,10 @@ plot( x=pops$Z_MAGMA, y=pops$POPS, main="", las=1, col="grey30",
 peaks <- fread( file=file.path( maindir, "peaks.tsv" ) )
 names(peaks) <- toupper( names(peaks) )
 
+# Determine the critical POPS value
+# The top 1% of POPS
+crit_pops <- pops$POPS[ order( pops$POPS, decreasing=TRUE ) ][ round( NROW(pops)/100 ) ]
+
 # Add nearest gene
 # Add top POPS in locus
 peaks$NEAREST_GENE <- NA
@@ -142,6 +146,12 @@ for( i in seq_len( NROW(peaks) ) ){
   peaks$POPS_GENE[i] <- paste( locus$GENE[pops_idx], collapse="; " )
   peaks$POPS[i] <- locus$POPS[ pops_idx[1] ]
 }
+
+# Look at fine-mapped loci 
+# Nearest gene = top POPS gene and POPS > critical value
+fm_peaks <- peaks[ peaks$NEAREST_GENE == peaks$POPS_GENE & peaks$POPS > crit_pops , c(-1,-4,-5) ]
+fm_peaks <- fm_peaks[ order( fm_peaks$POPS, decreasing=TRUE ) , ]
+fwrite( fm_peaks, file.path( maindir, "fine_mapped_peaks.tsv"), sep="\t" )
 
 # Print table
 gcols_peaks <- c( "SNP", "CHR", "BP", "LO", "HI", "P", "NEAREST_GENE", "POPS_GENE" )

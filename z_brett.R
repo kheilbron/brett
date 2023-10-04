@@ -745,7 +745,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     mag_plot_file <- file.path( mag_plot_dir, paste0( "region_", i, "_", 
                                                       peaks$snp[i], ".jpg" ) )
-    jpeg( filename=mag_plot_file, quality=95 )
+    jpeg( filename=mag_plot_file, quality=99, height=240 )
     
     # Set up the plot
     ymax <- max(locus$Y) *1.03
@@ -757,7 +757,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
     for( j in seq_len( NROW(locus) ) ){
       lines( x = c( locus$START[j], locus$STOP[j] ),
              y = c( locus$Y[j],     locus$Y[j] ),
-             lwd=2, col="grey30" )
+             lwd=3, col="#70AD47" )
     }
     
     # Add gene names
@@ -841,7 +841,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
   
   # Use z-score or P value as the plot's y-axis, depending on choice
   if( z.or.p == "z" ){
-    pops$Y <- abs(pops$pops)
+    pops$Y <- pops$pops
     ylab <- "PoP Score"
   }else if( z.or.p == "p" ){
     pops$Y <- -log10(pops$p)
@@ -849,6 +849,14 @@ pops_plots <- function( maindir, z.or.p="z" ){
   }else{
     stop("z.or.p must be either 'z' or 'p'")
   }
+  
+  # Establish the maximum and minimum y-axis values
+  ymin <- min(pops$Y)
+  ymax <- max(pops$Y) * 1.03
+  
+  # Determine the "significance" threshold
+  y_idx <- order( pops$Y, decreasing=TRUE )
+  ysig  <- pops$Y[ y_idx[ round( NROW(pops)/100 ) ] ]
   
   # Re-scale positions to Mbp
   pops$START <- pops$START/1e6
@@ -882,19 +890,22 @@ pops_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     pops_plot_file <- file.path( pops_plot_dir, paste0( "region_", i, "_", 
                                                         peaks$snp[i], ".jpg" ) )
-    jpeg( filename=pops_plot_file, quality=95 )
+    jpeg( filename=pops_plot_file, quality=99, height=240 )
     
     # Set up the plot
-    ymax <- max(locus$Y) *1.03
     xlab <- paste0( "Chr", peaks$chr[i], " position (Mbp)")
-    plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(0,ymax),
+    plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(ymin,ymax),
           xlab=xlab, ylab=ylab, las=1, type="n" )
+    
+    # Add horizontal lines
+    abline( h=0,    lwd=2, col="grey30" )
+    abline( h=ysig, lwd=2, col="grey30", lty=2 )
     
     # Add bars for each gene
     for( j in seq_len( NROW(locus) ) ){
       lines( x = c( locus$START[j], locus$STOP[j] ),
              y = c( locus$Y[j],     locus$Y[j] ),
-             lwd=2, col="grey30" )
+             lwd=3, col="#70AD47" )
     }
     
     # Add gene names
