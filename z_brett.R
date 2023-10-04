@@ -745,11 +745,12 @@ magma_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     mag_plot_file <- file.path( mag_plot_dir, paste0( "region_", i, "_", 
                                                       peaks$snp[i], ".jpg" ) )
-    jpeg( filename=mag_plot_file, width=480*4, height=320*4, res=75*4 )
+    jpeg( filename=mag_plot_file, width=480*4, height=300*4, res=75*4 )
     
     # Set up the plot
     ymax <- max(locus$Y) *1.08
     xlab <- paste0( "Chr", peaks$chr[i], " position (Mbp)")
+    par( mar=c( 4, 4, 0.5, 0.5 ) )
     plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(0,ymax),
           xlab=xlab, ylab=ylab, las=1, type="n" )
     
@@ -890,12 +891,13 @@ pops_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     pops_plot_file <- file.path( pops_plot_dir, paste0( "region_", i, "_", 
                                                         peaks$snp[i], ".jpg" ) )
-    jpeg( filename=pops_plot_file, width=480*4, height=320*4, res=75*4 )
+    jpeg( filename=pops_plot_file, width=480*4, height=300*4, res=75*4 )
     
     # Set up the plot
     ymin <- min( c( 0, locus$Y ) )
     ymax <- max(locus$Y) * 1.08
     xlab <- paste0( "Chr", peaks$chr[i], " position (Mbp)")
+    par( mar=c( 4, 4, 0.5, 0.5 ) )
     plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(ymin,ymax),
           xlab=xlab, ylab=ylab, las=1, type="n" )
     
