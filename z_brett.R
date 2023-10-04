@@ -900,8 +900,8 @@ pops_plots <- function( maindir, z.or.p="z" ){
           xlab=xlab, ylab=ylab, las=1, type="n" )
     
     # Add horizontal lines
-    abline( h=0,    lwd=2, col="grey30" )
-    abline( h=ysig, lwd=2, col="grey30", lty=2 )
+    abline( h=0,    lwd=2, col="grey70" )
+    abline( h=ysig, lwd=2, col="grey70", lty=2 )
     
     # Add bars for each gene
     for( j in seq_len( NROW(locus) ) ){
