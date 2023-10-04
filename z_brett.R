@@ -895,7 +895,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
     
     # Set up the plot
     ymin <- min( c( 0, locus$Y ) )
-    ymax <- max(locus$Y) * 1.08
+    ymax <- max( c( ysig, locus$Y ) ) * 1.08
     xlab <- paste0( "Chr", peaks$chr[i], " position (Mbp)")
     par( mar=c( 4, 4, 0.5, 0.5 ) )
     plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(ymin,ymax),
