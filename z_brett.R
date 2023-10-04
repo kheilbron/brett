@@ -745,7 +745,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     mag_plot_file <- file.path( mag_plot_dir, paste0( "region_", i, "_", 
                                                       peaks$snp[i], ".jpg" ) )
-    jpeg( filename=mag_plot_file, quality=100, height=320, res=300 )
+    png( filename=mag_plot_file, height=320, res=300 )
     
     # Set up the plot
     ymax <- max(locus$Y) *1.08
@@ -890,7 +890,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     pops_plot_file <- file.path( pops_plot_dir, paste0( "region_", i, "_", 
                                                         peaks$snp[i], ".jpg" ) )
-    jpeg( filename=pops_plot_file, quality=100, height=320, res=300 )
+    png( filename=pops_plot_file, height=320, res=300 )
     
     # Set up the plot
     ymin <- min( c( 0, locus$Y ) )
