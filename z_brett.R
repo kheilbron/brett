@@ -745,7 +745,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
     # Initialize the output file
     mag_plot_file <- file.path( mag_plot_dir, paste0( "region_", i, "_", 
                                                       peaks$snp[i], ".jpg" ) )
-    png( filename=mag_plot_file, height=320, res=300 )
+    png( filename=mag_plot_file, res=300 )
     
     # Set up the plot
     ymax <- max(locus$Y) *1.08
@@ -1183,8 +1183,8 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
     message2("Output file exists, skipping")
   }else{
     message2("Making MAGMA plots")
-    # magma_plots( maindir = maindir, 
-    #              z.or.p  = z.or.p )
+    magma_plots( maindir = maindir,
+                 z.or.p  = z.or.p )
   }
   
   
