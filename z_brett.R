@@ -1183,8 +1183,8 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
     message2("Output file exists, skipping")
   }else{
     message2("Making MAGMA plots")
-    magma_plots( maindir = maindir, 
-                 z.or.p  = z.or.p )
+    # magma_plots( maindir = maindir, 
+    #              z.or.p  = z.or.p )
   }
   
   
