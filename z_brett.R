@@ -858,7 +858,6 @@ pops_plots <- function( maindir, z.or.p="z" ){
   # Determine the "significance" threshold
   y_idx <- order( pops$Y, decreasing=TRUE )
   ysig1 <- pops$Y[ y_idx[ round( NROW(pops) * 0.01 ) ] ]
-  ysig2 <- pops$Y[ y_idx[ round( NROW(pops) * 0.02 ) ] ]
   ysig5 <- pops$Y[ y_idx[ round( NROW(pops) * 0.05 ) ] ]
   
   # Re-scale positions to Mbp
@@ -906,7 +905,6 @@ pops_plots <- function( maindir, z.or.p="z" ){
     # Add horizontal lines
     abline( h=0,    lwd=2, col="grey70" )
     abline( h=ysig1, lwd=2, col="grey70", lty=2 )
-    abline( h=ysig2, lwd=2, col="grey70", lty=2 )
     abline( h=ysig5, lwd=2, col="grey70", lty=2 )
     
     # Add bars for each gene
