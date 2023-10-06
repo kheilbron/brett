@@ -199,7 +199,7 @@ for( i in seq_len( NROW(peaks) ) ){
   locus_heading <- paste0( "\n## Locus ", i, ": ", peaks$SNP[i], " {.tabset .tabset-pills}\n")
   locus_subheading <- paste0( "Chr", peaks$CHR[i], " ", round(peaks$BP[i]/1e6), 
                               "Mb, Near: ", peaks$NEAREST_GENE[i], 
-                              ", PoPS: ", peaks$POPS_GENE[i] )
+                              ", PoPS: ", peaks$POPS_GENE[i], "\n" )
   cat(locus_heading)
   cat(locus_subheading)
   
