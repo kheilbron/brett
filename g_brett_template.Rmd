@@ -196,8 +196,11 @@ datatable( data     = pops[ , ..gcols ],
 for( i in seq_len( NROW(peaks) ) ){
   
   # Set up the sub-heading for the locus
-  locus_subheading <- paste0( "\n## Locus ", i, ": ", peaks$SNP[i], " (", 
-                              peaks$NEAREST_GENE[i], ") {.tabset .tabset-pills}\n")
+  locus_subheading <- paste0( "\n## Locus ", i, ": ", peaks$SNP[i], 
+                              ", Chr", peaks$CHR[i], " ", round(peaks$BP/1e6), "Mb", 
+                              ", Near: ", peaks$NEAREST_GENE[i], 
+                              ", PoPS: ", peaks$POPS_GENE[i],
+                              " {.tabset .tabset-pills}\n")
   cat(locus_subheading)
   
   # Insert the POPS subheading and plot
