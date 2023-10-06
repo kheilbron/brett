@@ -857,7 +857,9 @@ pops_plots <- function( maindir, z.or.p="z" ){
   
   # Determine the "significance" threshold
   y_idx <- order( pops$Y, decreasing=TRUE )
-  ysig  <- pops$Y[ y_idx[ round( NROW(pops)/100 ) ] ]
+  ysig1 <- pops$Y[ y_idx[ round( NROW(pops) * 0.01 ) ] ]
+  ysig2 <- pops$Y[ y_idx[ round( NROW(pops) * 0.02 ) ] ]
+  ysig5 <- pops$Y[ y_idx[ round( NROW(pops) * 0.05 ) ] ]
   
   # Re-scale positions to Mbp
   pops$START <- pops$START/1e6
@@ -895,7 +897,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
     
     # Set up the plot
     ymin <- min( c( 0, locus$Y ) )
-    ymax <- max( c( ysig, locus$Y ) ) * 1.08
+    ymax <- max( c( ysig1, locus$Y ) ) * 1.08
     xlab <- paste0( "Chr", peaks$chr[i], " position (Mbp)")
     par( mar=c( 4, 4, 0.5, 0.5 ) )
     plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(ymin,ymax),
@@ -903,7 +905,9 @@ pops_plots <- function( maindir, z.or.p="z" ){
     
     # Add horizontal lines
     abline( h=0,    lwd=2, col="grey70" )
-    abline( h=ysig, lwd=2, col="grey70", lty=2 )
+    abline( h=ysig1, lwd=2, col="grey70", lty=2 )
+    abline( h=ysig2, lwd=2, col="grey70", lty=2 )
+    abline( h=ysig5, lwd=2, col="grey70", lty=2 )
     
     # Add bars for each gene
     for( j in seq_len( NROW(locus) ) ){
