@@ -67,6 +67,7 @@ z_to_p <- function( z, log.p=FALSE ){
 #-------------------------------------------------------------------------------
 
 check_arguments <- function( ld.panel   = NULL, 
+                             population = NULL,
                              gw.file    = NULL,
                              chr.bp.col = NULL,
                              chr.col    = NULL,
@@ -83,6 +84,9 @@ check_arguments <- function( ld.panel   = NULL,
   
   # ld.panel must be either "hrc" or "g1000"
   if( ld.panel != "hrc" & ld.panel != "g1000" ) stop("ld.panel must be either 'hrc' or 'g1000'")
+  
+  # population must be either "eur" or "eas"
+  if( population != "eur" & population != "eas" ) stop("population must be either 'eur' or 'eas'")
   
   # Does the GWAS file exist?
   if( !file.exists(gw.file) )  stop("GWAS file does not exist")
@@ -182,6 +186,7 @@ check_arguments <- function( ld.panel   = NULL,
 
 format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/projects/pops/analyses/pd",
                                            ld.panel   = "hrc",
+                                           population = "eur",
                                            gw.file    = "/projects/0/prjs0817/projects/pops/analyses/pd/meta5_raw.tab.gz",
                                            chr.bp.col = "SNP",
                                            chr.col    = NULL,
@@ -202,6 +207,8 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/pr
   #   maindir:    Main directory in which to store results
   #   ld.panel:   Which LD reference panel should be used? Options are either: 
   #               "hrc" or "g1000".
+  #   population: Which populations should be used? Options are either: 
+  #               "eur" or "eas".
   #   gw.file:    GWAS file name
   #   chr.bp.col: Optional. The name of a GWAS column containing chromosome and bp 
   #               information separated by a punctuation character. Must be
@@ -239,18 +246,32 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/pr
   library(data.table)
   
   # Read in reference panel SNPs
-  if( ld.panel == "hrc" ){
+  if( ld.panel == "hrc" ){                                  ### HRC
     rare.or.common.snps <- "common"
-    if( rare.or.common.snps == "common"){
-      message2("Read in HRC SNPs with EUR MAF >= 1%")
-      hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv")
-    }else if( rare.or.common.snps == "rare"){
-      message2("Read in HRC SNPs with EUR MAC >= 10")
-      hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eur_snps_mac_ge_10.tsv")
+    if( rare.or.common.snps == "common"){                   ##  Common
+      if( population == "eur" ){                            #   EUR
+        message2("Read in EUR HRC SNPs with MAF >= 1%")
+        hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv")
+      }else if( population == "eas" ){                      #   EAS
+        message2("Read in EAS HRC SNPs with MAF >= 1%")
+        hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eas_snps_maf_ge_0.01.tsv")
+      }else{
+        stop("population must be either: eur or eas")
+      }
+    }else if( rare.or.common.snps == "rare"){               ##  Rare
+      if( population == "eur" ){                            #   EUR
+        message2("Read in EUR HRC SNPs with MAC >= 10")
+        hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eas_snps_mac_ge_10.tsv")
+      }else if( population == "eas" ){                      #   EAS
+        message2("Read in EAS HRC SNPs with MAC >= 10")
+        hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eas_snps_mac_ge_10.tsv")
+      }else{
+        stop("population must be either: eur or eas")
+      }
     }else{
       stop("rare.or.common must be 'rare' or 'common'")
     }
-  }else if( ld.panel == "g1000" ){
+  }else if( ld.panel == "g1000" ){                          ### 1000G
     message2("Read in 1000 Genomes SNPs with EUR MAC >= 10")
     hrc <- fread("/projects/0/prjs0817/projects/pops/data/g1000_eur_snps_mac_ge_10.tsv")
   }else{
@@ -581,7 +602,7 @@ rm_genes_without_enough_snps <- function(maindir){
 #   run_magma
 #-------------------------------------------------------------------------------
 
-run_magma <- function( maindir, ld.panel ){
+run_magma <- function( maindir, ld.panel, population ){
   
   # Create a job identifier
   job.id <- paste0( "m", sample( x=1:999, size=1 ) )
@@ -604,7 +625,7 @@ run_magma <- function( maindir, ld.panel ){
                     "-o", logfile,
                     "-e", logfile,
                     "/projects/0/prjs0817/repos/brett/e1_run_magma_hrc.sh",
-                    CHR, maindir )
+                    CHR, maindir, population )
       system(cmd)
     }
   }else if( ld.panel == "g1000" ){
@@ -945,6 +966,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
 
 brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
                    ld.panel   = "hrc",
+                   population = "eur",
                    gw.file    = "/projects/0/prjs0817/projects/pops/analyses/pd/meta5_raw.tab.gz",
                    chr.bp.col = "SNP",
                    chr.col    = NULL,
@@ -976,6 +998,8 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
   #   maindir:    Main directory in which to store results
   #   ld.panel:   Which LD reference panel should be used? Options are either: 
   #               "hrc" or "g1000".
+  #   population: Which populations should be used? Options are either: 
+  #               "eur" or "eas".
   #   gw.file:    GWAS file name
   #   chr.bp.col: Optional. The name of a GWAS column containing chromosome and bp 
   #               information separated by a punctuation character. Must be
@@ -1021,6 +1045,7 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
   message_header("Print inputs")
   message2( "Main directory: ", maindir )
   message2( "LD reference panel: ", ld.panel )
+  message2( "Population: ", population )
   message2( "GWAS file: ", gw.file )
   message2( "Chromosome/position column name: ", chr.bp.col)
   message2( "Chromosome column name: ", chr.col )
@@ -1044,6 +1069,7 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
     message_header("Check arguments")
     message2("Checking arguments")
     check_arguments( ld.panel   = ld.panel,
+                     population = population,
                      gw.file    = gw.file,
                      chr.bp.col = chr.bp.col,
                      chr.col    = chr.col,
@@ -1110,6 +1136,7 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
   }else{
     format_gwas_and_snp_loc_files( maindir    = maindir,
                                    ld.panel   = ld.panel,
+                                   population = population,
                                    gw.file    = gw.file,
                                    chr.bp.col = chr.bp.col,
                                    chr.col    = chr.col,
@@ -1159,8 +1186,9 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
                         mag_covar_files ) ) ){
     message2("Output files exist, skipping")
   }else{
-    run_magma( maindir  = maindir,
-               ld.panel = ld.panel )
+    run_magma( maindir    = maindir,
+               ld.panel   = ld.panel,
+               population = population )
   }
   
   
