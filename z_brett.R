@@ -180,9 +180,9 @@ check_arguments <- function( ld.panel   = NULL,
 #   format_gwas_and_snp_loc_files
 #-------------------------------------------------------------------------------
 
-format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
+format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/projects/pops/analyses/pd",
                                            ld.panel   = "hrc",
-                                           gw.file    = "/home/heilbron/projects/pops/analyses/pd/meta5_raw.tab.gz",
+                                           gw.file    = "/projects/0/prjs0817/projects/pops/analyses/pd/meta5_raw.tab.gz",
                                            chr.bp.col = "SNP",
                                            chr.col    = NULL,
                                            bp.col     = NULL,
@@ -243,16 +243,16 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/home/heilbron/projects
     rare.or.common.snps <- "common"
     if( rare.or.common.snps == "common"){
       message2("Read in HRC SNPs with EUR MAF >= 1%")
-      hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv")
+      hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv")
     }else if( rare.or.common.snps == "rare"){
       message2("Read in HRC SNPs with EUR MAC >= 10")
-      hrc <- fread("/home/heilbron/projects/pops/data/hrc_eur_snps_mac_ge_10.tsv")
+      hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eur_snps_mac_ge_10.tsv")
     }else{
       stop("rare.or.common must be 'rare' or 'common'")
     }
   }else if( ld.panel == "g1000" ){
     message2("Read in 1000 Genomes SNPs with EUR MAC >= 10")
-    hrc <- fread("/home/heilbron/projects/pops/data/g1000_eur_snps_mac_ge_10.tsv")
+    hrc <- fread("/projects/0/prjs0817/projects/pops/data/g1000_eur_snps_mac_ge_10.tsv")
   }else{
     stop("ld.panel must be either 'hrc' or 'g1000'")
   }
@@ -545,10 +545,10 @@ map_snps_to_genes <- function(maindir){
   # Make input file paths
   snp_loc_file   <- file.path( maindir, "snp_locations.tsv" )
   outfile_prefix <- file.path( maindir, "snps_mapped_to_genes" )
-  gene_loc_file  <- "/home/heilbron/projects/pops/data/gene_locations.tsv"
+  gene_loc_file  <- "/projects/0/prjs0817/projects/pops/data/gene_locations.tsv"
   
   # Run
-  cmd <- paste( "/home/heilbron/software/magma/magma",
+  cmd <- paste( "/projects/0/prjs0817/software2/magma/magma",
                 "--annotate",
                 "--snp-loc", snp_loc_file, 
                 "--gene-loc", gene_loc_file, 
@@ -603,7 +603,7 @@ run_magma <- function( maindir, ld.panel ){
                     "-J", jobname,
                     "-o", logfile,
                     "-e", logfile,
-                    "/home/heilbron/repos/brett/e1_run_magma_hrc.sh",
+                    "/projects/0/prjs0817/repos/brett/e1_run_magma_hrc.sh",
                     CHR, maindir )
       system(cmd)
     }
@@ -616,7 +616,7 @@ run_magma <- function( maindir, ld.panel ){
                   "-J", job.id,
                   "-o", logfile,
                   "-e", logfile,
-                  "/home/heilbron/repos/brett/e2_run_magma_g1000.sh",
+                  "/projects/0/prjs0817/repos/brett/e2_run_magma_g1000.sh",
                   maindir )
     system(cmd)
   }else{
@@ -634,7 +634,7 @@ run_magma <- function( maindir, ld.panel ){
 
 run_magma_pt <- function(maindir){
   cmd <- paste( "sbatch",
-                "/home/heilbron/repos/brett/e3_run_magma_parallel_thin.sh",
+                "/projects/0/prjs0817/repos/brett/e3_run_magma_parallel_thin.sh",
                 maindir )
   system(cmd)
 }
@@ -710,7 +710,7 @@ magma_plots <- function( maindir, z.or.p="z" ){
   
   # Read in gene locations
   message2("Read in gene locations")
-  gene_file <- "/home/heilbron/projects/pops/data/gene_locations.tsv"
+  gene_file <- "/projects/0/prjs0817/projects/pops/data/gene_locations.tsv"
   genes     <- fread(gene_file)
   names(genes) <- c( "GENE", "CHR", "START", "STOP", "TSS", "STRAND", "NAME" )
   
@@ -797,7 +797,7 @@ run_pops <- function(maindir){
   logfile <- file.path( maindir, "logs/pops.log" )
   
   # Run
-  bash_script <- "/home/heilbron/repos/brett/f_run_pops.sh"
+  bash_script <- "/projects/0/prjs0817/repos/brett/f_run_pops.sh"
   cmd <- paste( "sbatch", 
                 "-J", jobname,
                 "-o", logfile,
@@ -824,7 +824,7 @@ pops_plots <- function( maindir, z.or.p="z" ){
   
   # Read in gene locations
   message2("Read in gene locations")
-  gene_file <- "/home/heilbron/projects/pops/data/gene_locations.tsv"
+  gene_file <- "/projects/0/prjs0817/projects/pops/data/gene_locations.tsv"
   genes     <- fread(gene_file)
   
   # Read in POPS results, calculate P values
@@ -943,9 +943,9 @@ pops_plots <- function( maindir, z.or.p="z" ){
 #   wrapper
 #-------------------------------------------------------------------------------
 
-brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
+brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
                    ld.panel   = "hrc",
-                   gw.file    = "/home/heilbron/projects/pops/analyses/pd/meta5_raw.tab.gz",
+                   gw.file    = "/projects/0/prjs0817/projects/pops/analyses/pd/meta5_raw.tab.gz",
                    chr.bp.col = "SNP",
                    chr.col    = NULL,
                    bp.col     = NULL,
@@ -1013,7 +1013,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
   #-------------------------------------------------------------------------------
   
   # Load libraries and sources
-  source("/home/heilbron/repos/brett/z_brett.R")
+  source("/projects/0/prjs0817/repos/brett/z_brett.R")
   message2("Load libraries and sources")
   suppressPackageStartupMessages( library(data.table) )
   
@@ -1232,7 +1232,7 @@ brett <- function( maindir    = "/home/heilbron/projects/pops/analyses/pd",
     message2("Rendering an HTML report")
     library(rmarkdown)
     rmd_file <- file.path( maindir, "report.Rmd" )
-    file.copy( from = "~/repos/brett/g_brett_template.Rmd",
+    file.copy( from = "/projects/0/prjs0817/repos/brett/g_brett_template.Rmd",
                to   = rmd_file, overwrite=TRUE )
     args <- list( maindir    = maindir,
                   ld.panel   = ld.panel,

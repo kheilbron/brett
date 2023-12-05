@@ -16,7 +16,7 @@ if( file.exists(common_outfile) ){
 }
 
 # Run plink2 to get EAF of HRC SNPs
-bfile     <- "/home/heilbron/projects/pops/data/g1000_eur/g1000_eur"
+bfile     <- "/projects/0/prjs0817/projects/pops/data/g1000_eur/g1000_eur"
 plink_out <- file.path( scratch_dir, "plink" )
 plink_cmd <- paste( "plink2 --bfile", bfile, "--freq --out", plink_out )
 system(plink_cmd)
@@ -45,7 +45,7 @@ common_df <- m[ m$ac >= 10 & m$chr != 23 , ]
 fwrite( x=common_df, file=common_outfile, sep="\t" )
 
 # Move back to my home directory
-common_home_dir_file   <- "/home/heilbron/projects/pops/data/g1000_eur_snps_mac_ge_10.tsv"
+common_home_dir_file   <- "/projects/0/prjs0817/projects/pops/data/g1000_eur_snps_mac_ge_10.tsv"
 file.copy( from=common_outfile, to=common_home_dir_file )
 
 

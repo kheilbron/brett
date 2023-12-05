@@ -5,15 +5,13 @@
 #SBATCH --partition=thin
 #SBATCH --time 30:00
 #SBATCH --mem=7G
-# #SBATCH --mail-type=BEGIN,END
-# #SBATCH --mail-user=karl.heilbron@charite.de
 
 # Parse arguments
 CHR=$1
 MAINDIR=$2
 
 # Set variables
-MAGMA=/home/heilbron/software/magma/magma
+MAGMA=/projects/0/prjs0817/software2/magma/magma
 HRC_DIR=/gpfs/work5/0/pgcdac/DWFV2CJb8Piv_0116_pgc_data/HRC_reference.r1-1/pop_EUR/
 SNPS_MAPPED_TO_GENES="${MAINDIR}"/snps_mapped_to_genes_filtered.genes.annot
 GWAS_PVALUES="${MAINDIR}"/gwas_pvalues.tsv

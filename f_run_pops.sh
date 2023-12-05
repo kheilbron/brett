@@ -13,11 +13,11 @@
 MAINDIR=$1
 
 # Set variables
-pops_path=/home/heilbron/repos/pops/pops2.py
-gene_locs=/home/heilbron/projects/pops/data/gene_locations.tsv
-feature_prefix=/home/heilbron/projects/pops/data/features_munged/features
+pops_path=/projects/0/prjs0817/repos/pops/pops2.py
+gene_locs=/projects/0/prjs0817/projects/pops/data/gene_locations.tsv
+feature_prefix=/projects/0/prjs0817/projects/pops/data/features_munged/features
 magma_prefix="${MAINDIR}"/magma
-control_path=/home/heilbron/repos/pops/example/data/utils/features_jul17_control.txt
+control_path=/projects/0/prjs0817/repos/pops/example/data/utils/features_jul17_control.txt
 pops_prefix="${MAINDIR}"/pops
 
 # Print arguments

@@ -70,7 +70,7 @@ mag_file <- file.path( maindir, "magma.genes.out" )
 mag      <- fread(mag_file)
 
 # Read in gene locations
-gene_file <- "/home/heilbron/projects/pops/data/gene_locations.tsv"
+gene_file <- "/projects/0/prjs0817/projects/pops/data/gene_locations.tsv"
 genes     <- fread(gene_file)
 
 # Add gene names and MAGMA results to POPS results

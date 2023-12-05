@@ -1,8 +1,10 @@
 
+
+
 #-------------------------------------------------------------------------------------------
-# a_split_feature_file.R
-#   Split the large PoPS feature file of 58k gene-level features into 58 files of up to
-#   1000 features each. Ensure that Ensembl ID is the first column of each file.
+#   a_split_feature_file.R
+#     Split the large PoPS feature file of 58k gene-level features into 58 files of up to
+#     1000 features each. Ensure that Ensembl ID is the first column of each file.
 #-------------------------------------------------------------------------------------------
 
 # Modules required to run R:
@@ -11,8 +13,8 @@
 
 # Set arguments
 message("Set arguments")
-infile <- "/home/heilbron/projects/pops/data/features_raw/PoPS.features.txt.gz"
-outdir <- "/home/heilbron/projects/pops/data/features_split"
+infile <- "/projects/0/prjs0817/projects/pops/data/features_raw/PoPS.features.txt.gz"
+outdir <- "/projects/0/prjs0817/projects/pops/data/features_split"
 n_cols_per_out_file <- 1000
 
 # Unzip the input file
