@@ -1,0 +1,225 @@
+---
+title: "Brett Report"
+author: "Karl Heilbron"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+params:
+  maindir: ""
+  ld.panel: ""
+  gw.file: ""
+  chr.bp.col: ""
+  chr.col: ""
+  bp.col: ""
+  a1.col: ""
+  a2.col: ""
+  p.col: ""
+  eaf.col: ""
+  n1.col: ""
+  n0.col: ""
+  n.col: ""
+  n: ""
+  z.or.p: ""
+  check.args: ""
+---
+
+```{r simplify_variable_names, echo=FALSE}
+# Set up shorter parameter names
+gw.file <- params$gw.file
+```
+
+# Inputs {.tabset .tabset-pills}
+## Inputs
+```{r inputs, echo=FALSE}
+
+# Print inputs
+library(DT)
+input_df <- data.frame( Argument=names(params), Description="" )
+for( i in seq_len( NROW(input_df) ) ){
+  if( !is.null(params[[i]]) ){
+    input_df$Description[i] <- params[[i]]
+  }
+}
+datatable( data    = input_df,
+           caption = "Inputs used to generate this report" )
+```
+
+## GWAS file
+```{r gwas_file, echo=FALSE}
+
+# Show the first 5 rows of the GWAS file
+library(data.table)
+gw <- fread( file=gw.file, nrows=5 )
+datatable( data    = gw, 
+           caption = "The first 5 rows of the GWAS file" )
+```
+
+# POPS and MAGMA distributions {.tabset .tabset-pills}
+## POPS
+```{r pops_distribution, echo=FALSE}
+
+# Read in POPS results, calculate P values
+pops_file <- file.path( maindir, "pops.preds" )
+pops <- fread(pops_file)
+names(pops)[ names(pops) == "PoPS_Score" ] <- "POPS"
+pops$P_POPS <- z_to_p( z=pops$POPS )
+
+# Read in MAGMA results
+mag_file <- file.path( maindir, "magma.genes.out" )
+mag      <- fread(mag_file)
+
+# Read in gene locations
+gene_file <- "/home/heilbron/projects/pops/data/gene_locations.tsv"
+genes     <- fread(gene_file)
+
+# Add gene names and MAGMA results to POPS results
+pops$GENE  <- genes$NAME[  match( pops$ENSGID, genes$ENSGID ) ]
+pops$CHR   <- genes$CHR[   match( pops$ENSGID, genes$ENSGID ) ]
+pops$START <- genes$START[ match( pops$ENSGID, genes$ENSGID ) ]
+pops$STOP  <- genes$END[   match( pops$ENSGID, genes$ENSGID ) ]
+pops$P_MAGMA <- mag$P[     match( pops$ENSGID, mag$GENE ) ]
+pops$Z_MAGMA <- mag$ZSTAT[ match( pops$ENSGID, mag$GENE ) ]
+
+# Density plot  
+plot( density(pops$POPS), main="", las=1, lwd=2, col="grey30" )
+```
+
+## MAGMA
+```{r magma_distribution, echo=FALSE}
+
+# Density plot
+plot( density( na.omit(pops$Z_MAGMA) ), main="", las=1, lwd=2, col="grey30" )
+```
+
+## POPS v. MAGMA
+```{r pops_v_magma, echo=FALSE}
+plot( x=pops$Z_MAGMA, y=pops$POPS, main="", las=1, col="grey30",
+      xlab="MAGMA z-score", ylab="POP Score" )
+```
+
+# GWAS peaks
+```{r gwas_peaks, echo=FALSE}
+
+# Read in peaks
+peaks <- fread( file=file.path( maindir, "peaks.tsv" ) )
+names(peaks) <- toupper( names(peaks) )
+
+# Determine the critical POPS value
+# The top 1% of POPS
+crit_pops <- pops$POPS[ order( pops$POPS, decreasing=TRUE ) ][ round( NROW(pops)/100 ) ]
+
+# Add nearest gene
+# Add top POPS in locus
+peaks$NEAREST_GENE <- NA
+peaks$POPS_GENE <- NA
+peaks$POPS     <- NA
+for( i in seq_len( NROW(peaks) ) ){
+  
+  # Subset to the focal locus
+  idx <- pops$CHR == peaks$CHR[i] & 
+    pops$STOP > peaks$LO[i] &
+    pops$START < peaks$HI[i]
+  locus <- pops[ idx , ]
+  
+  # If there are no genes in the locus, expand the locus boundaries by +/- 2Mb
+    if( NROW(locus) == 0 ){
+      idx  <- pops$CHR == peaks$CHR[i] & 
+        pops$STOP  > peaks$LO[i] - 2e6 &
+        pops$START < peaks$HI[i] + 2e6
+      locus <- pops[ idx , ]
+    }
+    
+  # Find the nearest gene
+  locus$dist_start <- abs( locus$START - peaks$BP[i] )
+  locus$dist_stop  <- abs( locus$STOP  - peaks$BP[i] )
+  locus$min_dist   <- ifelse( locus$dist_start < locus$dist_stop,
+                              locus$dist_start,  locus$dist_stop )
+  locus$min_dist   <- ifelse( peaks$BP[i] < locus$dist_stop & 
+                                peaks$BP[i] > locus$dist_start,
+                              0, locus$min_dist )
+  ng_idx <- which( locus$min_dist == min(locus$min_dist) )
+  peaks$NEAREST_GENE[i] <- paste( locus$GENE[ng_idx], collapse="; " )
+  
+  # Find top POPS
+  pops_idx <- which( locus$POPS == max(locus$POPS) )
+  peaks$POPS_GENE[i] <- paste( locus$GENE[pops_idx], collapse="; " )
+  peaks$POPS[i] <- locus$POPS[ pops_idx[1] ]
+}
+
+# Look at fine-mapped loci 
+# Nearest gene = top POPS gene and POPS > critical value
+fm_peaks <- peaks[ peaks$NEAREST_GENE == peaks$POPS_GENE & peaks$POPS > crit_pops , c(-1,-4,-5) ]
+fm_peaks <- fm_peaks[ order( fm_peaks$POPS, decreasing=TRUE ) , ]
+fwrite( fm_peaks, file.path( maindir, "fine_mapped_peaks.tsv"), sep="\t" )
+
+# Print table
+gcols_peaks <- c( "SNP", "CHR", "BP", "LO", "HI", "P", "NEAREST_GENE", "POPS_GENE" )
+peak_caption <- paste( "A table of GWAS hits. SNP = variant identifier, CHR =",
+                       "chromosome, BP = position, LO = leftmost boundary of the",
+                       "peak, HI = rightmost boundary of the peak, P = P value,",
+                       "NEAREST_GENE = gene nearest to the lead variant, POPS_GENE",
+                       "= gene with the highest POPS in the locus.")
+datatable( data    = peaks[ , ..gcols_peaks ], 
+           caption = peak_caption,
+           filter = list( position = 'top', clear = FALSE ) )
+```
+
+# Top genes
+```{r top_genes, echo=FALSE, warning=FALSE}
+
+# Subset to interesting columns
+gcols <- c( "GENE", "CHR", "START", "STOP", 
+            "POPS", "Z_MAGMA", "P_POPS", "P_MAGMA" )
+
+# Print table
+genes_caption <- paste( "A table of top genes based on POPS and MAGMA results.",
+                        "GENE = HGNC gene name, CHR = chromosome, START =",
+                        "leftmost gene boundary, STOP = rightmost gene boundary,",
+                        "POPS = POP score, Z_MAGMA = MAGMA z-score, P_POPS =",
+                        "P value associated with the POP score, P_MAGMA =",
+                        "MAGMA P value" )
+datatable( data     = pops[ , ..gcols ],
+           caption  = genes_caption,
+           rownames = FALSE,
+           filter = list( position = 'top', clear = FALSE ),
+           options  = list( order = list( list( 4, "desc" ) ) ) ) %>%
+  formatRound( columns = c( 'POPS', 'Z_MAGMA', 'P_POPS' ), 
+               digits  = 3 )
+```
+
+# Locus plots
+```{r locus_plots, echo=FALSE, results="asis"}
+
+# Loop through peaks
+# peaks <- peaks[ order( peaks$CHR, peaks$BP ) , ]
+for( i in seq_len( NROW(peaks) ) ){
+  
+  # Set up the sub-heading for the locus
+  locus_heading <- paste0( "\n## Locus ", i, ": ", peaks$NEAREST_GENE[i], " {.tabset .tabset-pills}\n")
+  locus_desc <- paste0( peaks$SNP[i], 
+                        ", Chr", peaks$CHR[i], " ", round(peaks$BP[i]/1e6), 
+                        "Mb, Near: ", peaks$NEAREST_GENE[i], 
+                        ", PoPS: ", peaks$POPS_GENE[i], "\n" )
+  cat(locus_heading)
+  cat(locus_desc)
+  
+  # Insert the POPS subheading and plot
+  cat("\n### POPS\n")
+  pops_locus_plot <- file.path( "plots", "pops", 
+                                paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
+  # cat( "\n", pops_locus_plot, "\n" )
+  cat( "\n", paste0( "![](", pops_locus_plot, ")" ), "\n" )
+  
+  # Insert the MAGMA subheading and plot
+  cat("\n### MAGMA\n")
+  mag_locus_plot <- file.path( "plots", "magma", 
+                               paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
+  # cat( "\n", mag_locus_plot, "\n" )
+  cat( "\n", paste0( "![](", mag_locus_plot, ")" ), "\n" )
+}
+```
+
+
+
+
