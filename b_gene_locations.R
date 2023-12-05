@@ -8,7 +8,7 @@
 
 # Read in POPS genes
 library(data.table)
-pops_file <- "/home/heilbron/projects/pops/data/features_split/features.1"
+pops_file <- "/projects/0/prjs0817/projects/pops/data/features_split/features.1"
 pops_cmd <- paste( "awk '{print $1}'", pops_file )
 pops <- fread( cmd=pops_cmd )
 
@@ -18,7 +18,7 @@ pops <- fread( cmd=pops_cmd )
 #--------------------------------------------------------------------------------
 
 # Read in gencode v44 file
-gc_file <- "~/projects/pops/data/gencode.v44.grch37.gff3.gz"
+gc_file <- "/projects/0/prjs0817/projects/pops/data/gencode.v44.grch37.gff3.gz"
 gc_cmd  <- paste( 'zcat', gc_file, '| grep -v "#"' )
 gc      <- fread( cmd=gc_cmd )
 names(gc) <- c( "CHR", "src", "type", "START", "END", "score", "STRAND", "phase", "attr" )
@@ -58,7 +58,7 @@ gc3 <- gc2[ match( pops$ENSGID, gc2$ENSGID ) , ..gcols ]
 gc4 <- gc3[ !is.na(gc3$ENSGID) , ]
 
 # Write
-outfile <- "~/projects/pops/data/gene_locations.tsv"
+outfile <- "/projects/0/prjs0817/projects/pops/data/gene_locations.tsv"
 fwrite( x=gc4, file=outfile, sep="\t" )
 
 
