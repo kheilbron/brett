@@ -27,6 +27,7 @@ params:
 ```{r simplify_variable_names, echo=FALSE}
 # Set up shorter parameter names
 gw.file <- params$gw.file
+maindir <- params$maindir
 ```
 
 # Inputs {.tabset .tabset-pills}

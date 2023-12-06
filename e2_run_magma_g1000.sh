@@ -10,7 +10,7 @@
 MAINDIR=$1
 
 # Set variables
-MAGMA=/projects/0/prjs0817/software2/magma/magma
+MAGMA=/projects/0/prjs0817/software/magma/magma
 SNPS_MAPPED_TO_GENES="${MAINDIR}"/snps_mapped_to_genes_filtered.genes.annot
 GWAS_PVALUES="${MAINDIR}"/gwas_pvalues.tsv
 BED_PATH=/projects/0/prjs0817/projects/pops/data/g1000_eur/g1000_eur
