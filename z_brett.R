@@ -569,7 +569,7 @@ map_snps_to_genes <- function(maindir){
   gene_loc_file  <- "/projects/0/prjs0817/projects/pops/data/gene_locations.tsv"
   
   # Run
-  cmd <- paste( "/projects/0/prjs0817/software2/magma/magma",
+  cmd <- paste( "/projects/0/prjs0817/software/magma/magma",
                 "--annotate",
                 "--snp-loc", snp_loc_file, 
                 "--gene-loc", gene_loc_file, 
