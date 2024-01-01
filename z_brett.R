@@ -17,14 +17,17 @@
 # z_to_p:               Convert a z-score into a P value
 
 
-# ensure_finished_jobs: Make sure all qsub jobs finish running before proceeding
+# ensure_finished_jobs: Make sure all cluster jobs finish running before proceeding
 ensure_finished_jobs <- function(identifier){
   
-  message( date(), "   Make sure all jobs finish running before proceeding" )
   external.call <- paste0( "squeue | grep ", identifier, " | wc -l" )
   running.jobs  <- as.numeric( system( external.call, intern=TRUE ) ) 
+  total_sleep   <- 0
   while( running.jobs > 0){
-    Sys.sleep(10)
+    message( "Waited for ", total_sleep, " minutes, there are still ",
+             running.jobs, " jobs running")
+    Sys.sleep(60)
+    total_sleep <- total_sleep + 1
     running.jobs <- as.numeric( system( external.call, intern=TRUE ) )
   }
 }
@@ -187,18 +190,7 @@ check_arguments <- function( ld.panel   = NULL,
 format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/projects/pops/analyses/pd",
                                            ld.panel   = "hrc",
                                            population = "eur",
-                                           gw.file    = "/projects/0/prjs0817/projects/pops/analyses/pd/meta5_raw.tab.gz",
-                                           chr.bp.col = "SNP",
-                                           chr.col    = NULL,
-                                           bp.col     = NULL,
-                                           a1.col     = "A1",
-                                           a2.col     = "A2",
-                                           p.col      = "p",
-                                           eaf.col    = "freq",
-                                           n1.col     = "N_cases",
-                                           n0.col     = "N_controls",
-                                           n.col      = NULL,
-                                           n          = NULL ){
+                                           gw.file    = "/projects/0/prjs0817/projects/pops/analyses/pd/meta5_raw.tab.gz" ){
   
   #-------------------------------------------------------------------------------
   #   Input descriptions
@@ -210,36 +202,10 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/pr
   #   population: Which populations should be used? Options are either: 
   #               "eur" or "eas".
   #   gw.file:    GWAS file name
-  #   chr.bp.col: Optional. The name of a GWAS column containing chromosome and bp 
-  #               information separated by a punctuation character. Must be
-  #               specified if chr.col and bp.col are not specified.
-  #   chr.col:    Optional. The name of a GWAS column containing chromosome
-  #               information. Must be specified if chr.bp.col is not specified.
-  #   bp.col:     Optional. The name of a GWAS column containing position (bp)
-  #               information. Must be specified if chr.bp.col is not specified.
-  #   a1.col:     The name of a GWAS column containing the effect (alt) allele
-  #   a2.col:     The name of a GWAS column containing the non-effect (ref) allele
-  #   p.col:      The name of a GWAS column containing the P value
-  #   eaf.col     Optional. The name of a GWAS column containing the frequency of
-  #               the effect (alt) allele. If not specified, all palindromic SNPs
-  #               will be removed. Otherwise palindromic SNPs with similar 
-  #               frequencies in GWAS and HRC will be preserved.
-  #   n1.col:     The name of a GWAS column containing the per-SNP number of 
-  #               cases. Must be specified with n0.col, or must specify n.col 
-  #               or n.
-  #   n0.col:     The name of a GWAS column containing the per-SNP number of 
-  #               controls. Must be specified with n1.col, or must specify n.col 
-  #               or n.
-  #   n.col:      The name of a GWAS column containing the per-SNP effective
-  #               sample size. If not specified, must specify both n1.col and 
-  #               n0.col, or n.
-  #   n:          If per-SNP sample size information is not available, this
-  #               specifies the study-wide effective sample size. If not 
-  #               specified, must specify both n1.col and n0.col, or n.col.
   
   
   #-------------------------------------------------------------------------------
-  #   Read in GWAS and HRC, format columns, subset to shared SNPs
+  #   Read in GWAS and HRC, format columns
   #-------------------------------------------------------------------------------
   
   # Load libraries and sources
@@ -284,247 +250,24 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/pr
   
   # Re-name GWAS columns
   message2("Re-name GWAS columns")
-  names(gw)[ names(gw) == chr.bp.col ] <- "chr.bp"
-  names(gw)[ names(gw) == chr.col    ] <- "chr"
-  names(gw)[ names(gw) == bp.col     ] <- "bp"
-  names(gw)[ names(gw) == a1.col     ] <- "a1"
-  names(gw)[ names(gw) == a2.col     ] <- "a2"
-  names(gw)[ names(gw) == p.col      ] <- "P"
-  names(gw)[ names(gw) == eaf.col    ] <- "eaf"
-  names(gw)[ names(gw) == n1.col     ] <- "n1"
-  names(gw)[ names(gw) == n0.col     ] <- "n0"
-  names(gw)[ names(gw) == n.col      ] <- "N"
-  
-  # Make columns for chromosome and position
-  if( "chr.bp" %in% names(gw) ){
-    message2("Make columns for chromosome and position")
-    gw$chr <- as.integer( sub( pattern     = "^chr([[:alnum:]]+)[[:punct:]]([[:digit:]]+)$", 
-                               replacement = "\\1", 
-                               x=gw$chr.bp ) )
-    gw$bp  <- as.integer( sub( pattern     = "^chr([[:alnum:]]+)[[:punct:]]([[:digit:]]+)$", 
-                               replacement = "\\2", 
-                               x=gw$chr.bp ) )
-  }
-  
-  # Create a per-SNP effective sample size column
-  #   If this column already exists, do nothing
-  #   If an overall study N is provided, use it for all SNPs
-  #   Otherwise, compute the effective N from the number of cases and controls
-  if( "N" %in% names(gw) ){
-    message2("An effective sample size column has been provided and will be used")
-  }else if( !is.null(n) ){
-    message2("A study-wide effective sample size has been provided and will be applied to all SNPs")
-    gw$N <- n
-  }else if( "n1" %in% names(gw) & "n0" %in% names(gw) ){
-    message2("Columns for number of cases and controls have been provided for each SNP, computing the effective sample size")
-    gw$N <- n_eff( gw$n1, gw$n0 )
-  }
+  names(gw)[ names(gw) == "A1" ] <- "a1"
+  names(gw)[ names(gw) == "A2" ] <- "a2"
+  names(gw)[ names(gw) == "p"  ] <- "P"
   
   
   #-------------------------------------------------------------------------------
-  #   Harmonize GWAS and reference panel alleles: without allele frequency information
+  #   Subset to shared SNPs
   #-------------------------------------------------------------------------------
   
   # Subset GWAS and reference panel to shared SNPs based on chromosome and position
-  message2("Subset GWAS and reference panel to shared SNPs based on chromosome and position")
-  cpab_gw  <- paste( gw$chr,  gw$bp,  
-                     ifelse( gw$a1   < gw$a2,   gw$a1,   gw$a2  ), 
-                     ifelse( gw$a1    < gw$a2,   gw$a2,   gw$a1  ),  sep="_" )
-  cpab_hrc <- paste( hrc$chr, hrc$bp, 
-                     ifelse( hrc$alt < hrc$ref, hrc$alt, hrc$ref ), 
-                     ifelse( hrc$alt < hrc$ref, hrc$ref, hrc$alt ), sep="_" )
-  cpab_both <- intersect( cpab_hrc, cpab_gw )
-  hrc2 <- hrc[ match( cpab_both, cpab_hrc ) , ]
-  gw2  <- gw[  match( cpab_both, cpab_gw  ) , ]
+  message2("Subset GWAS and reference panel to shared SNPs")
+  snps_both <- intersect( gw$SNP, hrc$snp )
+  hrc2 <- hrc[ match( snps_both, hrc$snp ) , ]
+  gw2  <- gw[  match( snps_both, gw$SNP  ) , ]
   message2( "Of the ", NROW(gw), " GWAS SNPs, ", NROW(gw2), 
            " (", round( 100*NROW(gw2)/NROW(gw), 2 ), "%) were found in the reference panel" )
   message2( "Of the ", NROW(hrc), " reference panel SNPs, ", NROW(hrc2), 
            " (", round( 100*NROW(hrc2)/NROW(hrc), 2 ), "%) were found in the GWAS" )
-  
-  # Find palindromic SNPs and SNPs with alleles that are flipped in 
-  # the reference panel v. GWAS ('discordant')
-  message2("Find palindromic SNPs and SNPs with alleles that are flipped in ",
-           "the reference panel v. GWAS ('discordant')")
-  pal     <- ( hrc2$alt=="A" & hrc2$ref=="T" ) | 
-             ( hrc2$alt=="T" & hrc2$ref=="A" ) | 
-             ( hrc2$alt=="C" & hrc2$ref=="G" ) | 
-             ( hrc2$alt=="G" & hrc2$ref=="C" )
-  discord <- hrc2$alt != gw2$a1
-  message2( sum(pal),     "/", NROW(hrc2), " (", round( 100 * sum(pal)     / NROW(hrc2), 2 ), "%) SNPs are palindromic" )
-  message2( sum(discord), "/", NROW(hrc2), " (", round( 100 * sum(discord) / NROW(hrc2), 2 ), "%) SNPs have discordant alleles" )
-  
-  # For discordant non-palindromic SNPs: flip GWAS alleles
-  message2("For discordant non-palindromic SNPs: flip GWAS alleles")
-  disc_nonpal <- discord & !pal
-  original_gwas_ref <- gw2$a2
-  original_gwas_alt <- gw2$a1
-  gw2$a2[disc_nonpal] <- original_gwas_alt[disc_nonpal]
-  gw2$a1[disc_nonpal] <- original_gwas_ref[disc_nonpal]
-  if( "eaf" %in% names(gw2) ){
-    gw2$eaf[disc_nonpal] <- 1  - gw2$eaf[disc_nonpal]
-  }
-  message2( sum(disc_nonpal), "/", sum(discord), 
-           " (", round( 100 * sum(disc_nonpal) / sum(discord), 2 ), 
-           "%) discordant SNPs were non-palindromic, flipping alleles" )
-  
-  
-  #-------------------------------------------------------------------------------
-  #   Harmonize GWAS and HRC alleles: with allele frequency information
-  #-------------------------------------------------------------------------------
-  
-  # If allele frequency data is available for the GWAS
-  if( "eaf" %in% names(gw2) ){
-    
-    # For discordant palindromic SNPs with compatible AFs: flip GWAS alleles
-    diff_af_disc    <- abs( ( 1 - gw2$eaf ) - hrc2$af ) > 0.2 | hrc2$af > 0.4
-    disc_pal_compat <- discord & pal & !diff_af_disc
-    gw2$a2[disc_pal_compat]  <- original_gwas_alt[disc_pal_compat]
-    gw2$a1[disc_pal_compat]  <- original_gwas_ref[disc_pal_compat]
-    gw2$eaf[disc_pal_compat] <- 1  - gw2$eaf[disc_pal_compat]
-    message2( sum(disc_pal_compat), "/", sum(discord), 
-             " (", round( 100 * sum(disc_pal_compat) / sum(discord), 2 ), 
-             "%) discordant SNPs were palindromic but with AFs that were clearly ",
-             "compatible with the reference panel, flipping alleles" )
-    
-    # Flag discordant palindromic SNPs with incompatible AFs for removal
-    disc_pal_incompat <- discord & pal & diff_af_disc
-    message2( sum(disc_pal_incompat), "/", sum(discord), 
-              " (", round( 100 * sum(disc_pal_incompat) / sum(discord), 2 ), 
-             "%) discordant SNPs were palindromic and had AFs that were not ",
-             "clearly compatible with the reference panel, flagging for removal" )
-    
-    # For concordant palindromic SNPs with clearly incompatible AFs: flip GWAS alleles
-    diff_af_conc <- abs( gw2$eaf - hrc2$af ) > 0.2
-    common_af    <- hrc2$af > 0.4
-    conc_pal_incompat <- !discord & pal & diff_af_conc & !common_af
-    gw2$eaf[conc_pal_incompat] <- 1  - gw2$eaf[conc_pal_incompat]
-    message2( sum(conc_pal_incompat), "/", sum( !discord & pal ), 
-             " (", round( 100 * sum(conc_pal_incompat) / sum( !discord & pal ), 2 ), 
-             "%) concordant palindromic SNPs had AFs that were clearly ",
-             "different from the reference panel, flipped alleles" )
-    
-    # Report the number of concordant palindromic SNPs with clearly compatible AFs
-    conc_pal_compat <- !discord & pal & !diff_af_conc & !common_af
-    message2( sum(conc_pal_compat), "/", sum( !discord & pal ), 
-             " (", round( 100 * sum(conc_pal_compat) / sum( !discord & pal ), 2 ), 
-             "%) concordant palindromic SNPs had AFs that were clearly similar ",
-             "to the reference panel, no action" )
-    
-    # Flag concordant palindromic SNPs with HRC MAF > 40% for removal
-    conc_pal_ambig <- !discord & pal & common_af
-    message2( sum(conc_pal_ambig), "/", sum( !discord & pal ), 
-             " (", round( 100 * sum(conc_pal_ambig) / sum( !discord & pal ), 2 ), 
-             "%) concordant palindromic SNPs had reference panel MAF > 40%, ",
-             "flagging for removal" )
-    
-    # Remove flagged SNPs
-    message2("Remove flagged SNPs")
-    bad_snps <- disc_pal_incompat | conc_pal_ambig
-    gw3  <- gw2[  !bad_snps , ]
-    hrc3 <- hrc2[ !bad_snps , ]
-    
-  }else{
-    
-    # Remove palindromic SNPs
-    message2("Remove palindromic SNPs")
-    gw3  <- gw2[  !pal , ]
-    hrc3 <- hrc2[ !pal , ]
-  }
-  
-  
-  #-------------------------------------------------------------------------------
-  #   Wrap up harmonization
-  #-------------------------------------------------------------------------------
-  
-  # Report the change in number of SNPs
-  message2( "After harmonizing GWAS and reference panel SNPs, ", 
-            NROW(gw3), "/", NROW(gw2), " (", round( 100 * NROW(gw3) / NROW(gw2), 2 ), 
-            "%) remain" )
-  
-  # Check that CPRA is 100% identical now
-  cpra_gw  <- paste( gw3$chr,  gw3$bp,  gw3$a2,   gw3$a1,   sep="_" )
-  cpra_hrc <- paste( hrc3$chr, hrc3$bp, hrc3$ref, hrc3$alt, sep="_" )
-  if( all( cpra_gw == cpra_hrc ) ){
-    message2("CPRA is now identical for all GWAS and reference panel SNPs")
-  }else{
-    diff_cpra <- head( which( cpra_gw != cpra_hrc ) )
-    stop( paste( "Error: not all CPRA are identical for GWAS and reference panel",
-                 "SNPs. Here are (up to) the first 6:", diff_cpra, collapse=" " ) )
-  }
-  
-  # Replace GWAS SNP names with reference panel names
-  message2("Replace GWAS SNP names with reference panel names")
-  gw3$SNP <- hrc3$snp
-  
-  
-  #-------------------------------------------------------------------------------
-  #   Find peaks
-  #-------------------------------------------------------------------------------
-  
-  # Subset to significant SNPs
-  message2("Subset to significant SNPs")
-  sig_ss <- gw3[ gw3$P < 5e-8 , ]
-  
-  # Loop through loci and remove until none remain
-  message2("Loop through loci and remove until none remain")
-  peaks0 <- list()
-  n_sig_snps <- NROW(sig_ss)
-  while( n_sig_snps > 0 ){
-    
-    # Find top remaining SNP
-    top_idx <- which( sig_ss$P == min(sig_ss$P) )[1]
-    top_snp <- sig_ss$SNP[top_idx]
-    top_chr <- sig_ss$chr[top_idx]
-    top_bp  <- sig_ss$bp[top_idx]
-    top_p   <- sig_ss$P[top_idx]
-    # message2( "Analyzing locus ", length(peaks0)+1, ": chr", top_chr, ":", top_bp )
-    
-    # Subset to +/- 2Mb around it
-    boundaries_right <- top_bp + seq( 0, 2e6, 2e5 )
-    boundaries_left  <- top_bp - seq( 0, 2e6, 2e5 )
-    top_sig_ss <- sig_ss[ sig_ss$chr == top_chr & 
-                            sig_ss$bp < tail( boundaries_right, 1 ) &
-                            sig_ss$bp > tail( boundaries_left, 1 ) , ]
-    
-    # Check a series of 200kb windows around the hit for significant SNPs
-    any_sig_in_bin_right <- any_sig_in_bin_left <- list()
-    for( i in seq_len( length(boundaries_right)  -  1 ) ){
-      any_sig_in_bin_right[[i]] <- any( top_sig_ss$chr == top_chr & 
-                                          top_sig_ss$bp >= boundaries_right[i] & 
-                                          top_sig_ss$bp < boundaries_right[i+1] )
-      any_sig_in_bin_left[[i]]  <- any( top_sig_ss$chr == top_chr & 
-                                          top_sig_ss$bp <= boundaries_left[i] & 
-                                          top_sig_ss$bp > boundaries_left[i+1] )
-    }
-    any_sig_in_bin_right <- unlist(any_sig_in_bin_right)
-    any_sig_in_bin_left  <- unlist(any_sig_in_bin_left)
-    
-    # Find the last window to the right and left that have any P < 5e-8
-    bin_idx_rightmost <- tail( which(any_sig_in_bin_right), 1 )
-    bin_idx_leftmost  <- tail( which(any_sig_in_bin_left),  1 )
-    
-    # Take the most distant SNPs with P < 5e-8 as the boundaries
-    bin_rightmost <- top_sig_ss[ top_sig_ss$chr == top_chr &
-                                   top_sig_ss$bp >= boundaries_right[ bin_idx_rightmost ] &
-                                   top_sig_ss$bp <  boundaries_right[ bin_idx_rightmost + 1 ] , ]
-    bin_leftmost  <- top_sig_ss[ top_sig_ss$chr == top_chr &
-                                   top_sig_ss$bp <= boundaries_left[ bin_idx_leftmost ] &
-                                   top_sig_ss$bp >  boundaries_left[ bin_idx_leftmost + 1 ] , ]
-    bp_rightmost <- tail( bin_rightmost$bp, 1 )
-    bp_leftmost  <- head( bin_leftmost$bp,  1 )
-    
-    # Record boundaries
-    peaks0[[top_snp]] <- data.frame( snp=top_snp, chr=top_chr, bp=top_bp, 
-                                     lo=bp_leftmost, hi=bp_rightmost, p=top_p )
-    
-    # Remove this region from the GWAS sumstats
-    in_this_locus <- sig_ss$chr == top_chr & 
-                     sig_ss$bp <= bp_rightmost &
-                     sig_ss$bp >= bp_leftmost
-    sig_ss <- sig_ss[ !in_this_locus , ]
-    n_sig_snps <- NROW(sig_ss)
-  }
-  peaks <- as.data.table( do.call( rbind, peaks0 ) )
   
   
   #-------------------------------------------------------------------------------
@@ -535,20 +278,15 @@ format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/pr
   # Column names/order: SNP, P, N
   message2("Dump GWAS P values")
   gw_outfile <- file.path( maindir, "gwas_pvalues.tsv" )
-  gw_out <- gw3[ , c( "SNP", "P", "N" ) ]
+  gw_out <- gw2[ , c( "SNP", "P", "N" ) ]
   fwrite( x=gw_out, file=gw_outfile, sep="\t" )
   
   # Dump a file of SNP locations
   # No header, but column order: SNP, CHR, BP
   message2("Dump a file of SNP locations")
   snp_loc_outfile <- file.path( maindir, "snp_locations.tsv" )
-  snp_loc_out <- gw3[ , c( "SNP", "chr", "bp" ) ]
+  snp_loc_out <- gw2[ , c( "SNP", "chr", "bp" ) ]
   fwrite( x=snp_loc_out, file=snp_loc_outfile, sep="\t", col.names=FALSE )
-  
-  # Dump peaks
-  message2("Dump peaks")
-  peaks_outfile <- file.path( maindir, "peaks.tsv" )
-  fwrite( x=peaks, file=peaks_outfile, sep="\t" )
   
   
   #-------------------------------------------------------------------------------
@@ -981,14 +719,6 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
                    n          = NULL,
                    z.or.p     = "z",
                    check.args = TRUE ){
-  
-  
-  #-------------------------------------------------------------------------------
-  #   TODOs
-  #-------------------------------------------------------------------------------
-  
-  # format_gwas_and_snp_loc_files
-  #    1. Remove duplicated CPRA in the GWAS file
   
   
   #-------------------------------------------------------------------------------
