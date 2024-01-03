@@ -7,27 +7,17 @@ output:
     toc_float: true
 params:
   maindir: ""
-  ld.panel: ""
-  gw.file: ""
-  chr.bp.col: ""
-  chr.col: ""
-  bp.col: ""
-  a1.col: ""
-  a2.col: ""
-  p.col: ""
-  eaf.col: ""
-  n1.col: ""
-  n0.col: ""
-  n.col: ""
-  n: ""
-  z.or.p: ""
-  check.args: ""
+  ld_panel: ""
+  gw_file: ""
+  loci_dir: ""
+  check_args: ""
 ---
 
 ```{r simplify_variable_names, echo=FALSE}
 # Set up shorter parameter names
-gw.file <- params$gw.file
-maindir <- params$maindir
+gw_file  <- params$gw_file
+maindir  <- params$maindir
+loci_dir <- params$loci_dir
 ```
 
 # Inputs {.tabset .tabset-pills}
@@ -51,7 +41,7 @@ datatable( data    = input_df,
 
 # Show the first 5 rows of the GWAS file
 library(data.table)
-gw <- fread( file=gw.file, nrows=5 )
+gw <- fread( file=gw_file, nrows=5 )
 datatable( data    = gw, 
            caption = "The first 5 rows of the GWAS file" )
 ```
@@ -103,19 +93,21 @@ plot( x=pops$Z_MAGMA, y=pops$POPS, main="", las=1, col="grey30",
 ```{r gwas_peaks, echo=FALSE}
 
 # Read in peaks
-peaks <- fread( file=file.path( maindir, "peaks.tsv" ) )
+loci_file <- file.path( loci_dir, "loci_cs.tsv" )
+peaks <- fread(loci_file)
+pattern <- "^chr[[:digit:]]+_[[:digit:]]+_[[:digit:]]+_[[:digit:]]+_(.*)$"
+peaks$snp <- sub( pattern=pattern, replacement="\\1", x=peaks$hit )
 names(peaks) <- toupper( names(peaks) )
-
+# peaks <- peaks[ order( peaks$chr, peaks$bp ) , ]
+  
 # Determine the critical POPS value
 # The top 1% of POPS
 crit_pops <- pops$POPS[ order( pops$POPS, decreasing=TRUE ) ][ round( NROW(pops)/100 ) ]
 
-# Add nearest gene
 # Add top POPS in locus
-peaks$NEAREST_GENE <- NA
 peaks$POPS_GENE <- NA
 peaks$POPS     <- NA
-for( i in seq_len( NROW(peaks) ) ){
+for( i in seq_along(peaks$HIT) ){
   
   # Subset to the focal locus
   idx <- pops$CHR == peaks$CHR[i] & 
@@ -131,17 +123,6 @@ for( i in seq_len( NROW(peaks) ) ){
       locus <- pops[ idx , ]
     }
     
-  # Find the nearest gene
-  locus$dist_start <- abs( locus$START - peaks$BP[i] )
-  locus$dist_stop  <- abs( locus$STOP  - peaks$BP[i] )
-  locus$min_dist   <- ifelse( locus$dist_start < locus$dist_stop,
-                              locus$dist_start,  locus$dist_stop )
-  locus$min_dist   <- ifelse( peaks$BP[i] < locus$dist_stop & 
-                                peaks$BP[i] > locus$dist_start,
-                              0, locus$min_dist )
-  ng_idx <- which( locus$min_dist == min(locus$min_dist) )
-  peaks$NEAREST_GENE[i] <- paste( locus$GENE[ng_idx], collapse="; " )
-  
   # Find top POPS
   pops_idx <- which( locus$POPS == max(locus$POPS) )
   peaks$POPS_GENE[i] <- paste( locus$GENE[pops_idx], collapse="; " )
@@ -155,9 +136,9 @@ fm_peaks <- fm_peaks[ order( fm_peaks$POPS, decreasing=TRUE ) , ]
 fwrite( fm_peaks, file.path( maindir, "fine_mapped_peaks.tsv"), sep="\t" )
 
 # Print table
-gcols_peaks <- c( "SNP", "CHR", "BP", "LO", "HI", "P", "NEAREST_GENE", "POPS_GENE" )
+gcols_peaks <- c( "SNP", "CHR", "CENTRE", "LO", "HI", "P", "NEAREST_GENE", "POPS_GENE" )
 peak_caption <- paste( "A table of GWAS hits. SNP = variant identifier, CHR =",
-                       "chromosome, BP = position, LO = leftmost boundary of the",
+                       "chromosome, CENTRE = PIP-weighted position, LO = leftmost boundary of the",
                        "peak, HI = rightmost boundary of the peak, P = P value,",
                        "NEAREST_GENE = gene nearest to the lead variant, POPS_GENE",
                        "= gene with the highest POPS in the locus.")
@@ -194,7 +175,7 @@ datatable( data     = pops[ , ..gcols ],
 
 # Loop through peaks
 # peaks <- peaks[ order( peaks$CHR, peaks$BP ) , ]
-for( i in seq_len( NROW(peaks) ) ){
+for( i in seq_along(peaks$HIT) ){
   
   # Set up the sub-heading for the locus
   locus_heading <- paste0( "\n## Locus ", i, ": ", peaks$NEAREST_GENE[i], " {.tabset .tabset-pills}\n")
@@ -205,18 +186,19 @@ for( i in seq_len( NROW(peaks) ) ){
   cat(locus_heading)
   cat(locus_desc)
   
-  # Insert the POPS subheading and plot
-  cat("\n### POPS\n")
+  # Insert the LZP plot
+  lzp_locus_plot <- file.path( loci_dir, "lzp", "separated", "conditioned", 
+                                paste0( peaks$HIT[i], ".jpg" ) )
+  cat( "\n", paste0( "![](", lzp_locus_plot, ")" ), "\n" )
+  
+  # Insert the POPS plot
   pops_locus_plot <- file.path( "plots", "pops", 
                                 paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  # cat( "\n", pops_locus_plot, "\n" )
   cat( "\n", paste0( "![](", pops_locus_plot, ")" ), "\n" )
   
-  # Insert the MAGMA subheading and plot
-  cat("\n### MAGMA\n")
+  # Insert the MAGMA plot
   mag_locus_plot <- file.path( "plots", "magma", 
                                paste0( "region_", i, "_", peaks$SNP[i], ".jpg" ) )
-  # cat( "\n", mag_locus_plot, "\n" )
   cat( "\n", paste0( "![](", mag_locus_plot, ")" ), "\n" )
 }
 ```

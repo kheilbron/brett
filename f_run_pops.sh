@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=16
 #SBATCH --cpus-per-task=1
-#SBATCH --partition=thin
+#SBATCH --partition=rome
 #SBATCH --time 59:00
 #SBATCH --mem=27G
 #SBATCH --mail-type=BEGIN,END

@@ -2,8 +2,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --partition=thin
-#SBATCH --time 30:00
+#SBATCH --partition=rome
+#SBATCH --time 25:00
 #SBATCH --mem=7G
 
 # Parse arguments
