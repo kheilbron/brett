@@ -105,8 +105,7 @@ names(peaks) <- toupper( names(peaks) )
 crit_pops <- pops$POPS[ order( pops$POPS, decreasing=TRUE ) ][ round( NROW(pops)/100 ) ]
 
 # Add top POPS in locus
-peaks$POPS_GENE <- NA
-peaks$POPS     <- NA
+peaks$POPS <- NA
 for( i in seq_along(peaks$HIT) ){
   
   # Subset to the focal locus
@@ -125,15 +124,8 @@ for( i in seq_along(peaks$HIT) ){
     
   # Find top POPS
   pops_idx <- which( locus$POPS == max(locus$POPS) )
-  peaks$POPS_GENE[i] <- paste( locus$GENE[pops_idx], collapse="; " )
-  peaks$POPS[i] <- locus$POPS[ pops_idx[1] ]
+  peaks$POPS[i] <- paste( locus$GENE[pops_idx], collapse="; " )
 }
-
-# Look at fine-mapped loci 
-# Nearest gene = top POPS gene and POPS > critical value
-fm_peaks <- peaks[ peaks$NEAREST_GENE == peaks$POPS_GENE & peaks$POPS > crit_pops , c(-1,-4,-5) ]
-fm_peaks <- fm_peaks[ order( fm_peaks$POPS, decreasing=TRUE ) , ]
-fwrite( fm_peaks, file.path( maindir, "fine_mapped_peaks.tsv"), sep="\t" )
 
 # Print table
 gcols_peaks <- c( "SNP", "CHR", "CENTRE", "LO", "HI", "P", "NEAREST_GENE", "POPS_GENE" )
@@ -178,11 +170,11 @@ datatable( data     = pops[ , ..gcols ],
 for( i in seq_along(peaks$HIT) ){
   
   # Set up the sub-heading for the locus
-  locus_heading <- paste0( "\n## Locus ", i, ": ", peaks$NEAREST_GENE[i], " {.tabset .tabset-pills}\n")
+  locus_heading <- paste0( "\n## Locus ", i, ": ", peaks$NEAREST[i], " {.tabset .tabset-pills}\n")
   locus_desc <- paste0( peaks$SNP[i], 
-                        ", Chr", peaks$CHR[i], " ", round(peaks$BP[i]/1e6), 
-                        "Mb, Near: ", peaks$NEAREST_GENE[i], 
-                        ", PoPS: ", peaks$POPS_GENE[i], "\n" )
+                        ", Chr", peaks$CHR[i], " ", round(peaks$CENTRE[i]/1e6), 
+                        "Mb, Near: ", peaks$NEAREST[i], 
+                        ", PoPS: ", peaks$POPS[i], "\n" )
   cat(locus_heading)
   cat(locus_desc)
   
