@@ -101,11 +101,12 @@ names(peaks) <- toupper( names(peaks) )
 # peaks <- peaks[ order( peaks$chr, peaks$bp ) , ]
   
 # Determine the critical POPS value
-# The top 1% of POPS
-crit_pops <- pops$POPS[ order( pops$POPS, decreasing=TRUE ) ][ round( NROW(pops)/100 ) ]
+# The top 5% of POPS
+crit_pops <- pops$POPS[ order( pops$POPS, decreasing=TRUE ) ][ round( NROW(pops)*0.05 ) ]
 
 # Add top POPS in locus
-peaks$POPS <- NA
+peaks$POPS  <- NA
+peaks$SCORE <- NA
 for( i in seq_along(peaks$HIT) ){
   
   # Subset to the focal locus
@@ -124,19 +125,30 @@ for( i in seq_along(peaks$HIT) ){
     
   # Find top POPS
   pops_idx <- which( locus$POPS == max(locus$POPS) )
-  peaks$POPS[i] <- paste( locus$GENE[pops_idx], collapse="; " )
+  peaks$POPS[i]  <- paste( locus$GENE[pops_idx], collapse="; " )
+  peaks$SCORE[i] <- locus$POPS[ pops_idx[1] ]
 }
 
+# Add a column denoting whether the nearest gene is also the top POPS gene
+peaks$PRIORITY <- peaks$NEAREST == peaks$POPS & peaks$SCORE > crit_pops
+
 # Print table
-gcols_peaks <- c( "SNP", "CHR", "CENTRE", "LO", "HI", "P", "NEAREST_GENE", "POPS_GENE" )
+gcols_peaks <- c( "SNP", "CHR", "CENTRE", "LO", "HI", "P", 
+                  "SCORE", "POPS", "NEAREST", "PRIORITY" )
 peak_caption <- paste( "A table of GWAS hits. SNP = variant identifier, CHR =",
-                       "chromosome, CENTRE = PIP-weighted position, LO = leftmost boundary of the",
-                       "peak, HI = rightmost boundary of the peak, P = P value,",
-                       "NEAREST_GENE = gene nearest to the lead variant, POPS_GENE",
-                       "= gene with the highest POPS in the locus.")
+                       "chromosome, CENTRE = PIP-weighted position, LO =",
+                       "leftmost boundary of the peak, HI = rightmost boundary",
+                       "of the peak, P = P value, SCORE = POPS score, POPS =",
+                       "gene with the highest POPS in the locus, NEAREST = gene",
+                       "nearest to the PIP-weighted position, PRIORITY = the",
+                       "nearest gene is also the top POPS gene and the POPS",
+                       "score is in the top 5% of all scores." )
 datatable( data    = peaks[ , ..gcols_peaks ], 
            caption = peak_caption,
-           filter = list( position = 'top', clear = FALSE ) )
+           filter = list( position = 'top', clear = FALSE ) ) %>% 
+  formatRound( columns = c( 'SCORE' ), 
+               digits  = 3 ) %>%
+  formatSignif( columns = c('P'), digits = 2 )
 ```
 
 # Top genes
@@ -159,7 +171,8 @@ datatable( data     = pops[ , ..gcols ],
            filter = list( position = 'top', clear = FALSE ),
            options  = list( order = list( list( 4, "desc" ) ) ) ) %>%
   formatRound( columns = c( 'POPS', 'Z_MAGMA', 'P_POPS' ), 
-               digits  = 3 )
+               digits  = 3 ) %>%
+  formatSignif( columns = c('P_MAGMA'), digits = 2 )
 ```
 
 # Locus plots
