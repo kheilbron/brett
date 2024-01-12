@@ -447,10 +447,12 @@ magma_plots <- function( maindir, loci_dir ){
     jpeg( filename=mag_plot_file, width=480*4, height=270*4, res=75*4 )
     
     # Set up the plot
-    ymax <- max(locus$Y) *1.08
+    ymin   <- min( c( 0, locus$Y ) )
+    ymax   <- max(locus$Y) * 1.1
+    yrange <- ymax - ymin
     xlab <- paste0( "Chromosome ", peaks$chr[i], " (Mb)")
-    par( mar=c( 4, 3.5, 0.5, 1.5 ) )
-    plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(0,ymax),
+    par( mar=c( 4, 3.5, 0.5, 3.5 ) )
+    plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(ymin,ymax),
           xlab=xlab, ylab="", las=1, type="n" )
     title( ylab=ylab, line=2.3 )
     
@@ -463,7 +465,7 @@ magma_plots <- function( maindir, loci_dir ){
     for( j in seq_len( NROW(locus) ) ){
       lines( x = c( locus$START[j], locus$STOP[j] ),
              y = c( locus$Y[j],     locus$Y[j] ),
-             lwd=3, col="#70AD47" )
+             lwd=2, col="blue4" )
     }
     
     # Add gene names
@@ -473,18 +475,18 @@ magma_plots <- function( maindir, loci_dir ){
     out_right <- locus$START > xmin & locus$STOP > xmax
     x_buffer <- ( xmax - xmin ) * 0.03
     xs <- ( locus$START + locus$STOP ) / 2
-    ys <- locus$Y + ymax*0.05
+    ys <- locus$Y + yrange*0.05
     if( sum(in_window) > 0 ){
       text( x=xs[in_window], y=ys[in_window], labels=locus$NAME[in_window], 
-            adj=c(0.5,0.5), col="#70AD47" )
+            adj=c(0.5,0.5), cex=0.75 )
     }
     if( sum(out_left) > 0 ){
       text( x=xmin - x_buffer, y=ys[out_left],  labels=locus$NAME[out_left],  
-            adj=c(0,0.5), col="#70AD47" )
+            adj=c(0,0.5), cex=0.75 )
     }
     if( sum(out_right) > 0 ){
       text( x=xmax + x_buffer, y=ys[out_right], labels=locus$NAME[out_right], 
-            adj=c(1,0.5), col="#70AD47" )
+            adj=c(1,0.5), cex=0.75 )
     }
     dev.off()
   }
@@ -559,10 +561,6 @@ pops_plots <- function( maindir, loci_dir ){
     ylab <- "-log10 PoPS P value"
   }
   
-  # Establish the maximum and minimum y-axis values
-  # ymin <- min(pops$Y)
-  # ymax <- max(pops$Y) * 1.05
-  
   # Determine the "significance" threshold
   y_idx <- order( pops$Y, decreasing=TRUE )
   ysig1 <- pops$Y[ y_idx[ round( NROW(pops) * 0.01 ) ] ]
@@ -602,10 +600,11 @@ pops_plots <- function( maindir, loci_dir ){
     jpeg( filename=pops_plot_file, width=480*4, height=270*4, res=75*4 )
     
     # Set up the plot
-    ymin <- min( c( 0, locus$Y ) )
-    ymax <- max( c( ysig1, locus$Y ) ) * 1.08
+    ymin   <- min( c( 0, locus$Y ) )
+    ymax   <- max( c( ysig1, locus$Y ) ) * 1.1
+    yrange <- ymax - ymin
     xlab <- paste0( "Chromosome ", peaks$chr[i], " (Mb)")
-    par( mar=c( 4, 3.5, 0.5, 1.5 ) )
+    par( mar=c( 4, 3.5, 0.5, 3.5 ) )
     plot( x=locus$START, y=locus$Y, xlim=c(xmin,xmax), ylim=c(ymin,ymax),
           xlab=xlab, ylab="", las=1, type="n" )
     title( ylab=ylab, line=2.3 )
@@ -619,7 +618,7 @@ pops_plots <- function( maindir, loci_dir ){
     for( j in seq_len( NROW(locus) ) ){
       lines( x = c( locus$START[j], locus$STOP[j] ),
              y = c( locus$Y[j],     locus$Y[j] ),
-             lwd=3, col="#70AD47" )
+             lwd=2, col="blue4" )
     }
     
     # Add gene names
@@ -629,18 +628,18 @@ pops_plots <- function( maindir, loci_dir ){
     out_right <- locus$START > xmin & locus$STOP > xmax
     x_buffer <- ( xmax - xmin ) * 0.03
     xs <- ( locus$START + locus$STOP ) / 2
-    ys <- locus$Y + ymax*0.05
+    ys <- locus$Y + yrange*0.05
     if( sum(in_window) > 0 ){
       text( x=xs[in_window], y=ys[in_window], labels=locus$gene[in_window], 
-            adj=c(0.5,0.5), col="#70AD47" )
+            adj=c(0.5,0.5), cex=0.75 )
     }
     if( sum(out_left) > 0 ){
       text( x=xmin - x_buffer, y=ys[out_left],  labels=locus$gene[out_left],  
-            adj=c(0,0.5), col="#70AD47" )
+            adj=c(0,0.5), cex=0.75 )
     }
     if( sum(out_right) > 0 ){
       text( x=xmax + x_buffer, y=ys[out_right], labels=locus$gene[out_right], 
-            adj=c(1,0.5), col="#70AD47" )
+            adj=c(1,0.5), cex=0.75 )
     }
     dev.off()
   }
@@ -864,7 +863,8 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
   }else{
     message2("Rendering an HTML report")
     library(rmarkdown)
-    rmd_file <- file.path( maindir, "report.Rmd" )
+    rmd_file  <- file.path( maindir, "report.Rmd" )
+    html_file <- file.path( maindir, "report.html" ) #easier for testing
     file.copy( from = "/projects/0/prjs0817/repos/brett/g_brett_template.Rmd",
                to   = rmd_file, overwrite=TRUE )
     args <- list( maindir    = maindir,
