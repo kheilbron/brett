@@ -107,10 +107,10 @@ check_arguments <- function( ld_panel   = NULL,
 #   format_gwas_and_snp_loc_files
 #-------------------------------------------------------------------------------
 
-format_gwas_and_snp_loc_files <- function( maindir    = "/projects/0/prjs0817/projects/pops/analyses/pd",
+format_gwas_and_snp_loc_files <- function( maindir    = NULL,
                                            ld_panel   = "hrc",
                                            population = "eur",
-                                           gw_file    = "/projects/0/prjs0817/projects/pops/analyses/pd/meta5_raw.tab.gz" ){
+                                           gw_file    = NULL ){
   
   #-------------------------------------------------------------------------------
   #   Input descriptions
@@ -563,8 +563,8 @@ pops_plots <- function( maindir, loci_dir ){
   
   # Determine the "significance" threshold
   y_idx <- order( pops$Y, decreasing=TRUE )
-  ysig1 <- pops$Y[ y_idx[ round( NROW(pops) * 0.01 ) ] ]
-  ysig5 <- pops$Y[ y_idx[ round( NROW(pops) * 0.05 ) ] ]
+  ysig99 <- pops$Y[ y_idx[ round( NROW(pops) * 0.01 ) ] ]
+  ysig90 <- pops$Y[ y_idx[ round( NROW(pops) * 0.1  ) ] ]
   
   # Re-scale positions to Mbp
   pops$START <- pops$START/1e6
@@ -601,7 +601,7 @@ pops_plots <- function( maindir, loci_dir ){
     
     # Set up the plot
     ymin   <- min( c( 0, locus$Y ) )
-    ymax   <- max( c( ysig1, locus$Y ) ) * 1.1
+    ymax   <- max( c( ysig99, locus$Y ) ) * 1.1
     yrange <- ymax - ymin
     xlab <- paste0( "Chromosome ", peaks$chr[i], " (Mb)")
     par( mar=c( 4, 3.5, 0.5, 3.5 ) )
@@ -611,8 +611,8 @@ pops_plots <- function( maindir, loci_dir ){
     
     # Add horizontal lines
     abline( h=0,    lwd=2, col="grey70" )
-    abline( h=ysig1, lwd=2, col="grey70", lty=2 )
-    abline( h=ysig5, lwd=2, col="grey70", lty=2 )
+    abline( h=ysig99, lwd=2, col="grey70", lty=2 )
+    abline( h=ysig90, lwd=2, col="grey70", lty=2 )
     
     # Add bars for each gene
     for( j in seq_len( NROW(locus) ) ){
@@ -647,13 +647,405 @@ pops_plots <- function( maindir, loci_dir ){
 
 
 #-------------------------------------------------------------------------------
+#   peaks_and_evidence
+#-------------------------------------------------------------------------------
+
+peaks_and_evidence <- function( loci_dir, maindir ){
+  
+  #-----------------------------------------------------------------------------
+  #   Read in genome-wide V2G, combine
+  #-----------------------------------------------------------------------------
+  
+  # Libraries and sources
+  library(data.table)
+  library(dplyr)
+  library(rentrez)
+  
+  # Read in gene locations
+  gene_file <- "/projects/0/prjs0817/projects/pops/data/gene_locations_inc_nc.tsv"
+  genes     <- fread(gene_file)
+  names(genes) <- tolower( names(genes) )
+  names(genes)[ names(genes) == "name" ] <- "gene"
+  
+  # Read in POPS results, calculate quantiles
+  pops_file <- file.path( maindir, "pops.preds" )
+  pops <- fread(pops_file)
+  names(pops) <- tolower( names(pops) )
+  names(pops)[ names(pops) == "pops_score" ] <- "pops"
+  pops$qpops <- ( rank(pops$pops) - 1 ) / ( NROW(pops) - 1 )
+  
+  # Read in MAGMA results
+  mag_file <- file.path( maindir, "magma.genes.out" )
+  mag      <- fread(mag_file)
+  names(mag) <- tolower( names(mag) )
+  names(mag)[ names(mag) == "gene" ]  <- "ensgid"
+  names(mag)[ names(mag) == "zstat" ] <- "magma"
+  mag$qmagma <- ( rank(mag$magma) - 1 ) / ( NROW(mag) - 1 )
+  
+  # Read in protein attenuation
+  pa <- fread("/projects/0/prjs0817/projects/pops/data/protein_attenuation.csv")
+  
+  # Read in RVIS
+  king <- fread("/projects/0/prjs0817/projects/pops/data/king_2019_gene_covariates.tsv")
+  
+  # Read in TableS12
+  ts12 <- fread("/projects/0/prjs0817/projects/pops/data/TableS12_simplified.csv")
+  names(ts12) <- tolower( names(ts12) )
+  
+  # Read in SCZ PubMed counts
+  pm <- fread("/projects/0/prjs0817/projects/pops/data/pubmed_count_in_scz_loci.tsv")
+  
+  # Join genome-wide V2G sources
+  gene_cols <- c( "gene", "ensgid", "type", "chr", "start", "end", "tss" )
+  pops_cols <- c( "ensgid", "pops", "qpops" )
+  mag_cols  <- c( "ensgid", "magma", "qmagma" )
+  pa_cols   <- c( "gene",   "prot_att" )
+  king_cols <- c( "ensgid", "rvis" )
+  ts12_cols <- c( "ensgid", "schema" )
+  j1 <- left_join( x=genes[ , ..gene_cols ], y=pops[ , ..pops_cols ], by="ensgid" )
+  j2 <- left_join( x=j1,                     y=mag[  , ..mag_cols ],  by="ensgid" )
+  j3 <- left_join( x=j2,                     y=pa[   , ..pa_cols ],   by="gene" )
+  j4 <- left_join( x=j3,                     y=king[ , ..king_cols ], by="ensgid" )
+  j5 <- left_join( x=j4,                     y=ts12[ , ..ts12_cols ], by="ensgid" )
+  j6 <- left_join( x=j5,                     y=pm,                    by="ensgid" )
+  
+  # Determine the POPS 90th percentile
+  non_na_pops <- sort( na.omit(j6$pops), decreasing=TRUE )
+  crit_pops <- non_na_pops[ round( length(non_na_pops)*0.1 ) ]
+  
+  
+  #-----------------------------------------------------------------------------
+  #   Loop through peaks, add info for "GWAS peaks" table, define genes in loci
+  #-----------------------------------------------------------------------------
+  
+  # Read in peaks
+  pk_file <- file.path( loci_dir, "loci_cs.tsv" )
+  pk <- fread(pk_file)
+  
+  # Extract SNP and PLINK-derived loci from hits
+  pattern <- "^(chr[[:digit:]]+_[[:digit:]]+_[[:digit:]]+)_[[:digit:]]+_(.*)$"
+  pk$snp   <- sub( pattern=pattern, replacement="\\2", x=pk$hit )
+  pk$locus <- sub( pattern=pattern, replacement="\\1", x=pk$hit )
+  
+  # Prepare to add columns to the peaks
+  pk$n_genes <- pk$n_nc_genes <- as.integer(0)
+  pk$d_gene  <- pk$p_gene     <- as.character(NA)
+  pk$dist    <- pk$pops       <- as.numeric(NA)
+  pk$both    <- pk$priority   <- FALSE
+  
+  # Loop through peaks
+  # Subset genome-wide V2G to local genes
+  # Read in the CS
+  # Add distance, coding, n_genes, and locus
+  ev0 <- list()
+  for( i in seq_along(pk$hit) ){
+    
+    # Subset genome-wide V2G to local genes
+    sub <- j6[ j6$chr   == pk$chr[i] &
+               j6$end   >= pk$lo[i] &
+               j6$start <= pk$hi[i] , ]
+    
+    # If there are genes in the locus
+    if( sum( sub$type == "protein_coding" ) > 0 ){
+      
+      # Add locus number and number of genes in the locus
+      # sub$n_genes <- NROW(sub)
+      sub$n_genes    <- sum( sub$type == "protein_coding" )
+      sub$n_nc_genes <- sum( sub$type != "protein_coding" )
+      sub$locus <- i
+      
+      # Add distance to gene
+      dist_start <- abs( sub$start - pk$centre[i] )
+      dist_stop  <- abs( sub$end   - pk$centre[i] )
+      min_dist   <- ifelse( dist_start < dist_stop, dist_start, dist_stop )
+      min_dist   <- ifelse( pk$centre[i] < sub$end & pk$centre[i] > sub$start,
+                            0, min_dist )
+      sub$dist <- min_dist
+      
+      # Add distance to TSS
+      sub$dist_tss <- abs( sub$tss - pk$centre[i] )
+      
+      # Read in the CS
+      cs_file <- file.path( loci_dir, "cred_sets", paste0( pk$hit[i], ".cs" ) )
+      cs <- fread( input=cs_file, na.strings="" )
+      
+      # Sum coding SNP PIPs across genes, join
+      cs_c <- aggregate( x=cs$pip, by=list( ensgid=cs$ensgid_c ), FUN=sum )
+      cs_c$ensgid <- as.character(cs_c$ensgid)
+      cs_c$x      <- as.numeric(cs_c$x)
+      names(cs_c)[ names(cs_c)=="x" ] <- "coding_pip"
+      sub2 <- left_join( x=sub, y=cs_c, by="ensgid" )
+      
+      # Sum promoter SNP PIPs across genes, join
+      cs_p <- aggregate( x=cs$pip, by=list( ensgid=cs$ensgid_p ), FUN=sum )
+      cs_p$ensgid <- as.character(cs_p$ensgid)
+      cs_p$x      <- as.numeric(cs_p$x)
+      names(cs_p)[ names(cs_p)=="x" ] <- "promoter_pip"
+      sub3 <- left_join( x=sub2, y=cs_p, by="ensgid" )
+      
+      # Populate peak
+      pk$n_genes[i]    <- sub3$n_genes[1]
+      pk$n_nc_genes[i] <- sub3$n_nc_genes[1]
+      pk$d_gene[i]  <- paste( sub3$gene[ sub3$dist == min( sub3$dist, na.rm=TRUE ) ], 
+                              collapse=", " )
+      pk$p_gene[i]  <- paste( sub3$gene[ sub3$pops == max( sub3$pops, na.rm=TRUE ) &
+                                         !is.na(sub3$pops) ], collapse=", " )
+      pk$dist[i]    <- min( sub3$dist, na.rm=TRUE )
+      pk$pops[i]    <- max( sub3$pops, na.rm=TRUE )
+      pk$both[i]    <- pk$d_gene[i] == pk$p_gene[i]
+      pk$priority[i] <- pk$both[i] & pk$n_genes[i] <= 12 & pk$pops[i] > crit_pops
+      
+      # Save results to list
+      ev0[[i]] <- sub3
+    }
+  }
+  
+  
+  #-----------------------------------------------------------------------------
+  #   Format and write outputs
+  #-----------------------------------------------------------------------------
+  
+  # Loci
+  ev <- do.call( rbind, ev0 )
+  ecols <- c( "locus", "gene", "ensgid", "chr", "start", "end", "tss",
+              "dist", "dist_tss", "pops", "qpops", "magma", "qmagma", "pubmed", 
+              "coding_pip", "promoter_pip", "schema", "n_genes", "n_nc_genes", 
+              "prot_att", "rvis" )
+  setcolorder( x=ev, neworder=ecols )
+  fwrite( x=ev, file.path( maindir, "evidence.tsv" ), sep="\t" )
+  
+  # Peaks
+  pcols <- c( "snp", "chr", "centre", "lo", "hi", "p", "d_gene", "dist", 
+              "p_gene", "pops", "n_genes", "n_nc_genes", "both", "priority" )
+  pk2 <- setcolorder( x=pk, neworder=pcols )
+  fwrite( x=pk2, file.path( maindir, "peaks.tsv" ), sep="\t" )
+  
+  
+  #-----------------------------------------------------------------------------
+  #   Done
+  #-----------------------------------------------------------------------------
+}
+
+
+#-------------------------------------------------------------------------------
+#   predict_causal_genes
+#-------------------------------------------------------------------------------
+
+maindir <- "/projects/0/prjs0817/projects/pops/analyses/scz/w3/eur_eas"
+predict_causal_genes <- function(maindir){
+  
+  #-----------------------------------------------------------------------------
+  #   Create columns for global features and covariates
+  #-----------------------------------------------------------------------------
+  
+  # Libraries and sources
+  library(data.table)
+  library(dplyr)
+  logit10 <- function(p) log10( p / (1-p) )
+  logistic <- function(x) ( 1 / ( 1 + exp(-x) ) )
+  
+  # Read in evidence
+  ev_file <- file.path( maindir, "evidence.tsv" )
+  ev <- fread(ev_file)
+  
+  # pops_glo
+  ev$pops_glo <- ifelse( is.na(ev$pops), 
+                         median( ev$pops, na.rm=TRUE ), 
+                         ev$pops )
+  
+  # dist_gene_glo
+  ev$dist_gene_glo <- log10( ev$dist + 1e3 )
+  
+  # dist_tss_glo
+  ev$dist_tss_glo <- log10( ev$dist_tss + 1e3 )
+  
+  # magma_glo
+  ev$magma_glo <- ifelse( is.na(ev$magma), 
+                          median( abs(ev$magma), na.rm=TRUE ), 
+                          abs(ev$magma) )
+  ev$magma_glo[ ev$magma_glo > 10 ] <- 10
+  
+  # coding_glo
+  ev$coding_pip[ is.na(ev$coding_pip) ] <- 0
+  ev$coding_glo <- ifelse( logit10(ev$coding_pip) < log10(10^-3), 
+                          log10(10^-3), 
+                          logit10(ev$coding_pip) )
+  
+  # PubMed
+  ev$pubmed_glo <- ifelse( is.na(ev$pubmed) | ev$pubmed == 0, 
+                           -1, log10(ev$pubmed) )
+  
+  # burden
+  ev$burden <- ifelse( ev$schema==1 & !is.na(ev$schema) , TRUE, FALSE )
+  ev$burden_prop <- mean(ev$burden)
+  
+  # prior_n_genes_locus
+  ev$prior_n_genes_locus <- logit10( 1 / ( ev$n_genes + ev$n_nc_genes/2 ) )
+  ev$prior_n_genes_locus <- ifelse( ev$type == "protein_coding",
+                                    logit10( 1 / ( ev$n_genes + ev$n_nc_genes/2 ) ),
+                                    logit10( 0.5 / ( ev$n_genes + ev$n_nc_genes/2 ) ) )
+  ev$prior_n_genes_locus[ ev$n_genes + ev$n_nc_genes == 1 ] <- logit10(0.75)
+  
+  # prot_att
+  ev$prot_att_miss <- mean( is.na(ev$prot_att)[ ev$type=="protein_coding" ] )
+  ev$prot_att      <- mean( ev$prot_att[ ev$type=="protein_coding" ], na.rm=TRUE )
+  
+  # rvis
+  ev$rvis_miss   <- mean( is.na(ev$rvis)[ ev$type=="protein_coding" ] )
+  ev$rvis4       <- mean( ev$rvis[ ev$type=="protein_coding" ], na.rm=TRUE )
+  ev$rvis4_poly2 <- ev$rvis4^2
+  
+  
+  #-----------------------------------------------------------------------------
+  #   Create columns for BIL and relative features
+  #-----------------------------------------------------------------------------
+  
+  # Initialize new columns
+  ev$pops_bil <- ev$dist_gene_bil <- ev$pubmed_bil <- FALSE
+  ev$pops_rel <- ev$dist_gene_rel <- ev$pubmed_rel <- ev$magma_rel <- as.numeric(NA)
+  
+  # Loop through loci
+  for( i in unique(ev$locus) ){
+    
+    # Subset to the focal locus
+    locus <- ev[ ev$locus == i , ]
+    
+    # pops_bil, pops_rel, dist_gene_rel, magma_rel
+    ev$pops_bil[      ev$locus == i ] <- locus$pops_glo == max(locus$pops_glo)
+    ev$dist_gene_bil[ ev$locus == i ] <- locus$dist     == min(locus$dist)
+    ev$pubmed_bil[    ev$locus == i ] <- locus$pubmed   == max(locus$pubmed)
+    ev$pops_rel[      ev$locus == i ] <- locus$pops_glo - max(locus$pops_glo)
+    ev$dist_gene_rel[ ev$locus == i ] <- log10( locus$dist - min(locus$dist) + 1e3 )
+    ev$pubmed_rel[    ev$locus == i ] <- locus$pubmed_glo - max(locus$pubmed_glo)
+    ev$magma_rel[     ev$locus == i ] <- locus$magma_glo - max(locus$magma_glo)
+    ev$coding_rel[    ev$locus == i ] <- locus$coding_glo - max(locus$coding_glo)
+  }
+  
+  
+  #-----------------------------------------------------------------------------
+  #   Get fitted probabilities
+  #-----------------------------------------------------------------------------
+  
+  # Read in ML model
+  # s_glm <- readRDS("/projects/0/prjs0817/projects/pops/data/scz_glm_nb.rds")
+  s_glm <- readRDS("/projects/0/prjs0817/projects/pops/data/scz_glm.rds")
+  
+  # Get predictions
+  pred <- predict( s_glm, newdata=ev, se=TRUE )
+  
+  # Format fitted values
+  y    <- pred$fit
+  ci   <- pred$se.fit * qnorm( 0.025, lower.tail=FALSE )
+  ymin <- y - ci
+  ymax <- y + ci
+  ev$causal_p  <- logistic(y)
+  ev$causal_lo <- logistic(ymin)
+  ev$causal_hi <- logistic(ymax)
+  ev <- ev[ order( ev$locus, -ev$causal_p ) , ]
+  
+  # Rescale
+  ev$causal_r <- as.numeric(NA)
+  for( i in unique(ev$locus) ){
+    sub  <- ev[ ev$locus==i , ]
+    vals <- sub$causal_p / sum(sub$causal_p)
+    set( x     = ev,
+         i     = which( ev$locus == i ),
+         j     = "causal_r",
+         value = vals )
+  }
+  
+  # Create column for genes prioritized by our non-ML criteria
+  ev$both     <- ev$dist_gene_bil & ev$pops_bil
+  ev$priority <- ev$dist_gene_bil & ev$pops_bil & ev$pops_glo > 0.45 & ev$n_genes <= 12
+  ev <- ev[ order(-ev$causal_p) , ]
+  
+  # Format
+  gcols <- c( "gene", "causal_p", "causal_r", "dist", "pops_glo", "magma", 
+              "pubmed", "coding_pip", "burden", "n_genes", "n_nc_genes", 
+              "dist_gene_rel", "pops_rel", "magma_rel", "qpops", "qmagma" )
+  setcolorder( x=ev, neworder=gcols )
+  fwrite( x=ev[,..gcols], file=file.path( maindir, "p_causal.tsv" ), sep="\t" )
+  
+  
+  #-----------------------------------------------------------------------------
+  #   Take a look
+  #-----------------------------------------------------------------------------
+  
+  # Look at all genes with P(causal) > 75%
+  ev2 <- ev[ ev$causal_p > 0.75 , ..gcols ]
+  head( ev2[ ev2$n_genes  > 1 , ], 18 )
+  ev2[ ev2$n_genes == 1 , ]
+  
+  # Are there any single genes with P(causal) < 75%? Yes, plenty now.
+  ev3 <- ev[ ev$causal_p < 0.75 & ev$n_genes==1 & ev$type=="protein_coding" , ..gcols ]
+  NROW(ev3)
+  tail( ev3, 18 )
+  
+  # What is the distribution of distances for single genes with P(causal) > 75%?
+  summary( ev2$dist[ ev2$n_genes == 1 ] )
+  
+  # Which genes with coding evidence are prioritized? Which aren't?
+  ev[ ev$causal_p > 0.5 & ev$coding_pip>0.1 , ..gcols ]
+  ev[ ev$causal_p < 0.5 & ev$coding_pip>0.1 , ..gcols ]
+  
+  # Are any genes with promoter evidence prioritized?
+  ev[ ev$causal_p > 0.5 & ev$promoter_pip>0.1 & !is.na(ev$promoter_pip>0) , ]
+  
+  # What does the 2x2 table look like for prioritized v. P(causal) > 75%?
+  p <- 0.75
+  table( ev$priority,               ev$causal_p > p  )
+  table( ev$both,                   ev$causal_p > p  )
+  table( ev$both & ev$n_genes<=12 , ev$causal_p > p )
+  table( ev$both & ev$n_genes<=8  , ev$causal_p > p )
+  
+  # What about adding a top MAGMA restriction?
+  table( ev$both & ev$n_genes<=8 & ev$magma_rel==0 ,  
+         ev$causal_p > p )
+  
+  # What about adding a 90th POPS restriction?
+  table( ev$both & ev$n_genes<=8 & ev$magma_rel==0 & ev$qpops>0.9 ,  
+         ev$causal_p > p )
+  
+  # Which genes pass our criteria and have high P(causal)?
+  ev4 <- ev[ ev$both & ev$n_genes<=8 & 
+               ev$magma_rel==0 & ev$qpops>0.9 , ]
+  ev5 <- ev4[ ev4$causal_p > p , ..gcols ]
+  ev5[ 1:18  , ]
+  ev5[ 19:36 , ]
+  ev5[ 37:46 , ]
+  
+  # Which genes pass our criteria, but do not have high P(causal)?
+  ev6 <- ev4[ ev4$causal_p < p , ..gcols]
+  head( ev6, 18 )
+  
+  # Which genes fail our criteria, but have high P(causal)?
+  # Can save two as coding PIP > 50% (WSCD2 and SLC39A8)
+  # Can save three as "dense loci with massive POPS" (YWHAE, DRD2, and FURIN)
+  # So of the 54 genes with P(causal) > 75%, 51 will be discussed in the paper!
+  ev7 <- ev[ !( ev$both & ev$n_genes<=8 & ev$magma_rel==0 & 
+                  ev$qpops>0.9 ) & ev$causal_p > p , ..gcols ]
+  ev7
+  
+  # Let's look at the prioritized genes with the lowest P(causal)
+  # Let's look at the non-prioritized genes with the highest P(causal)
+  tail( ev[ ev$priority & ev$causal_p < 0.75 , ..gcols ] )
+  
+  
+  #-----------------------------------------------------------------------------
+  #   Done
+  #-----------------------------------------------------------------------------
+}
+
+
+#-------------------------------------------------------------------------------
 #   wrapper
 #-------------------------------------------------------------------------------
 
 brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
                    ld_panel   = "hrc",
                    population = "eur",
-                   gw_file    = "/projects/0/prjs0817/projects/pops/analyses/pd/meta5_raw.tab.gz",
+                   gw_file    = file.path("/projects/0/prjs0817/projects/pops/",
+                                          "analyses/pd/meta5_raw.tab.gz"),
                    loci_dir   = NULL,
                    check_args = TRUE ){
   
@@ -723,6 +1115,8 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
   pops_marg_file        <- file.path( maindir, "pops.marginals" )
   pops_pred_file        <- file.path( maindir, "pops.preds" )
   pops_plots_file       <- file.path( maindir, "pops_plots.pdf" )
+  peaks_file            <- file.path( maindir, "peaks.tsv" )
+  evidence_file         <- file.path( maindir, "evidence.tsv" )
   html_file             <- file.path( maindir, "report.html" )
   
   # Assign output file names that are dependent on the reference panel
@@ -850,6 +1244,20 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
     message2("Making POPS plots")
     pops_plots( maindir  = maindir,
                 loci_dir = loci_dir )
+  }
+  
+  
+  #-------------------------------------------------------------------------------
+  #   Make peaks file and evidence file
+  #-------------------------------------------------------------------------------
+  
+  message_header("Make peaks file and evidence file")
+  if( all( file.exists( peaks_file, evidence_file ) ) ){
+    message2("Output files exist, skipping")
+  }else{
+    message2("Making peaks file and evidence file")
+    peaks_and_evidence( maindir  = maindir,
+                        loci_dir = loci_dir )
   }
   
   

@@ -105,6 +105,11 @@ pops_ma <- function( outdir,
   magma_plots( maindir  = outdir, 
                loci_dir = loci_dir_ma )
   
+  # Make peaks file and evidence file
+  message2("Make peaks file and evidence file")
+  peaks_and_evidence( maindir  = outdir,
+                      loci_dir = loci_dir_ma )
+  
   # Render an HTML report
   message2("Render an HTML report")
   rmd_file  <- file.path( outdir, "report.Rmd" )
