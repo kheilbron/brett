@@ -98,13 +98,77 @@ check_arguments <- function( ld_panel   = NULL,
                              gw_file    = NULL ){
   
   # ld_panel must be either "hrc" or "g1000"
-  if( ld_panel != "hrc" & ld_panel != "g1000" ) stop("ld_panel must be either 'hrc' or 'g1000'")
+  if( ld_panel != "hrc" & ld_panel != "g1000" ) 
+    stop("ld_panel must be either 'hrc' or 'g1000'")
   
-  # population must be either "eur" or "eas"
-  if( population != "eur" & population != "eas" ) stop("population must be either 'eur' or 'eas'")
+  # population must be one of: 
+  # eur, eas, afr, eur0.80_eas0.20, eur0.89_eas0.11, eur0.92_eas0.08
+  if( population != "eur" & population != "eas" & population != "afr" & 
+      population != "eur0.80_eas0.20"  & population != "eur0.89_eas0.11" &
+      population != "eur0.92_eas0.08" ){
+    stop( "population must be one of: 'eur', 'eas', 'afr', ",
+          "'eur0.80_eas0.20', 'eur0.89_eas0.11', 'eur0.92_eas0.08'" )
+  }
   
   # Does the GWAS file exist?
   if( !file.exists(gw_file) )  stop("GWAS file does not exist")
+}
+
+
+#-------------------------------------------------------------------------------
+#   read_reference_snps:     Read in reference panel SNPs
+#-------------------------------------------------------------------------------
+
+read_reference_snps <- function( ld_panel            = "hrc", 
+                                 population          = NULL, 
+                                 rare.or.common.snps = "rare" ){
+  
+  # Find the correct set of reference panel SNPs
+  if( ld_panel == "hrc" ){
+    
+    # Population: eur0.80_eas0.20
+    if( population == "eur0.80_eas0.20" ){
+      hfile <- "/projects/0/prjs0817/projects/pops/data/hrc_eur0.80_eas0.20_snps_maf_ge_0.01.tsv"
+      
+      # Population: eur0.89_eas0.11
+    }else if( population == "eur0.89_eas0.11" ){
+      hfile <- "/projects/0/prjs0817/projects/pops/data/hrc_eur0.89_eas0.11_snps_maf_ge_0.01.tsv"
+      
+      # Population: eur0.92_eas0.08
+    }else if( population == "eur0.92_eas0.08" ){
+      hfile <- "/projects/0/prjs0817/projects/pops/data/hrc_eur0.92_eas0.08_snps_maf_ge_0.01.tsv"
+      
+      # Population: eur
+    }else if( population == "eur" ){
+      hfile <- "/projects/0/prjs0817/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv"
+      
+      # Population: eas
+    }else if( population == "eas" ){
+      hfile <- "/projects/0/prjs0817/projects/pops/data/hrc_eas_snps_maf_ge_0.01.tsv"
+      
+    }else if( population == "afr" ){
+      hfile <- "/projects/0/prjs0817/projects/pops/data/hrc_afr_snps_maf_ge_0.01.tsv"
+    }  
+  }else if( ld_panel == "g1000" ){
+    hfile <- "/home/heilbron/projects/pops/data/g1000_eur_snps_mac_ge_10.tsv"
+  }
+  
+  # If rare, update file name
+  if( rare.or.common.snps == "rare" ){
+    hfile <- sub( pattern="_maf_ge_0.01.tsv$", replacement="_mac_ge_5.tsv", x=hfile )
+  }
+  
+  # Prepare to message
+  panel <- ifelse( ld_panel == "hrc",             "HRC",      "1000 Genomes" )
+  maf   <- ifelse( rare.or.common.snps == "rare", "MAC >= 5", "MAF >= 1%" )
+  msg   <- paste( "Read in", panel, "SNPs with", population, maf )
+  
+  # Read in reference panel SNPs
+  message2(msg)
+  hrc <- fread(hfile)
+  
+  # Return
+  return(hrc)
 }
 
 
@@ -124,8 +188,9 @@ format_gwas_and_snp_loc_files <- function( maindir    = NULL,
   #   maindir:    Main directory in which to store results
   #   ld_panel:   Which LD reference panel should be used? Options are either: 
   #               "hrc" or "g1000".
-  #   population: Which populations should be used? Options are either: 
-  #               "eur" or "eas".
+  #   population: Which population should be used? Options are: 
+  #               "eur", "eas", "afr", "eur0.80_eas0.20", 
+  #               "eur0.89_eas0.11", or "eur0.92_eas0.08"
   #   gw_file:    GWAS file name
   
   
@@ -137,37 +202,8 @@ format_gwas_and_snp_loc_files <- function( maindir    = NULL,
   library(data.table)
   
   # Read in reference panel SNPs
-  if( ld_panel == "hrc" ){                                  ### HRC
-    rare.or.common.snps <- "common"
-    if( rare.or.common.snps == "common"){                   ##  Common
-      if( population == "eur" ){                            #   EUR
-        message2("Read in EUR HRC SNPs with MAF >= 1%")
-        hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eur_snps_maf_ge_0.01.tsv")
-      }else if( population == "eas" ){                      #   EAS
-        message2("Read in EAS HRC SNPs with MAF >= 1%")
-        hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eas_snps_maf_ge_0.01.tsv")
-      }else{
-        stop("population must be either: eur or eas")
-      }
-    }else if( rare.or.common.snps == "rare"){               ##  Rare
-      if( population == "eur" ){                            #   EUR
-        message2("Read in EUR HRC SNPs with MAC >= 10")
-        hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eas_snps_mac_ge_10.tsv")
-      }else if( population == "eas" ){                      #   EAS
-        message2("Read in EAS HRC SNPs with MAC >= 10")
-        hrc <- fread("/projects/0/prjs0817/projects/pops/data/hrc_eas_snps_mac_ge_10.tsv")
-      }else{
-        stop("population must be either: eur or eas")
-      }
-    }else{
-      stop("rare.or.common must be 'rare' or 'common'")
-    }
-  }else if( ld_panel == "g1000" ){                          ### 1000G
-    message2("Read in 1000 Genomes SNPs with EUR MAC >= 10")
-    hrc <- fread("/projects/0/prjs0817/projects/pops/data/g1000_eur_snps_mac_ge_10.tsv")
-  }else{
-    stop("ld_panel must be either 'hrc' or 'g1000'")
-  }
+  hrc <- read_reference_snps( ld_panel   = ld_panel, 
+                              population = population )
   
   # Read in GWAS
   message2("Read in GWAS")
@@ -1165,8 +1201,9 @@ brett <- function( maindir    = "/projects/0/prjs0817/projects/analyses/pd",
   #   maindir:    Main directory in which to store results
   #   ld_panel:   Which LD reference panel should be used? Options are either: 
   #               "hrc" or "g1000".
-  #   population: Which populations should be used? Options are either: 
-  #               "eur" or "eas".
+  #   population: Which population should be used? Options are: 
+  #               "eur", "eas", "afr", "eur0.80_eas0.20", 
+  #               "eur0.89_eas0.11", or "eur0.92_eas0.08"
   #   gw_file:    GWAS file name
   #   loci_dir:   Directory containing a file showing boundaries for each locus
   #   check_args: Logical. Check whether arguments are valid?

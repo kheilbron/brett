@@ -36,10 +36,10 @@ bim_w_af_and_ac <- function( chromosome, population, rare.or.common ){
                         paste0( "HRC.r1-1.EGA.GRCh37.chr", chromosome, 
                                 ".impute.plink.EAS.538" ) )
   }else if(population == "afr"){
-    bfile <- file.path( "/gpfs/work5/0/pgcdac/DWFV2CJb8Piv_0116_pgc_data/",
-                        "HRC_reference.r1-1/pop_AFR/",
+    bfile <- file.path( "/gpfs/work5/0/pgcdac/imputation_references/",
+                        "HRC.r1-1_merged_EUR_EAS_panel/HRC.r1-1_consistent_size/pop_AFR",
                         paste0( "HRC.r1-1.EGA.GRCh37.chr", chromosome, 
-                                ".impute.plink.AFR" ) )
+                                ".impute.plink.AFR.781" ) )
   }else if(population == "eur0.92_eas0.08"){
     bfile <- file.path( "/gpfs/work5/0/pgcdac/imputation_references/",
                         "HRC.r1-1_merged_EUR_EAS_panel/BIP",
