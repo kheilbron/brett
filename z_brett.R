@@ -74,6 +74,11 @@ p_to_z <- function( p, direction=NULL, limit=.Machine$double.xmin, log.p=FALSE )
   z
 }
 
+# prop_to_odds: Converts a proportion to an odds
+prop_to_odds <- function(proportion){
+  proportion / (1 - proportion)
+}
+
 # z_to_p: Convert a z-score into a P value
 z_to_p <- function( z, log.p=FALSE ){
   if(log.p){
@@ -260,7 +265,7 @@ rm_genes_without_enough_snps <- function(maindir){
 #   run_magma
 #-------------------------------------------------------------------------------
 
-run_magma <- function( maindir, ld_panel, population, do.local=FALSE ){
+run_magma <- function( maindir, ld_panel, population, do.local=TRUE ){
   
   # Create a job identifier
   job.id <- paste0( "m", sample( x=1:999, size=1 ) )
@@ -272,9 +277,15 @@ run_magma <- function( maindir, ld_panel, population, do.local=FALSE ){
     # HRC: loop through chromosomes 
     for( CHR in 1:22 ){
       
-      # Create job name and log file name
+      # Create job, log file, and output file names
       jobname <- paste0( job.id, ".", CHR )
       logfile <- paste0( maindir, "/logs/magma", CHR, ".log" )
+      go_file <- paste0( maindir, "/magma/chr", CHR, ".genes.out" )
+      gr_file <- paste0( maindir, "/magma/chr", CHR, ".genes.raw" )
+      if( all( file.exists( go_file, gr_file ) ) ){
+        message2( "Output files already exist for chromosome: ", CHR, ", skipping" )
+        next
+      }
       
       # Run
       if(do.local){
@@ -318,8 +329,9 @@ run_magma <- function( maindir, ld_panel, population, do.local=FALSE ){
   ensure_finished_jobs(job.id)
   
   # Check that all jobs successfully completed
-  mag_chr_files <- paste0( "chr", 1:22, ".genes.out" )
-  if( !file.exists(mag_chr_files) ) stop("Not all MAGMA output files exist")
+  mag_chr_files <- file.path( maindir, "magma", 
+                              paste0( "chr", 1:22, ".genes.out" ) )
+  if( !all( file.exists(mag_chr_files) ) ) stop("Not all MAGMA output files exist")
 }
 
 
@@ -688,12 +700,16 @@ peaks_and_evidence <- function( loci_dir, maindir ){
   # Read in RVIS
   king <- fread("/projects/0/prjs0817/projects/pops/data/king_2019_gene_covariates.tsv")
   
+  # Read in Mostafavi et al. 2023 gene-level covariates
+  mo <- fread("/projects/0/prjs0817/projects/pops/data/pc_genes.txt")
+  names(mo)[ names(mo) == "GeneSymbol" ] <- "ensgid"
+  
   # Read in TableS12
-  ts12 <- fread("/projects/0/prjs0817/projects/pops/data/TableS12_simplified.csv")
-  names(ts12) <- tolower( names(ts12) )
+  # ts12 <- fread("/projects/0/prjs0817/projects/pops/data/TableS12_simplified.csv")
+  # names(ts12) <- tolower( names(ts12) )
   
   # Read in SCZ PubMed counts
-  pm <- fread("/projects/0/prjs0817/projects/pops/data/pubmed_count_in_scz_loci.tsv")
+  # pm <- fread("/projects/0/prjs0817/projects/pops/data/pubmed_count_in_scz_loci.tsv")
   
   # Join genome-wide V2G sources
   gene_cols <- c( "gene", "ensgid", "type", "chr", "start", "end", "tss" )
@@ -701,13 +717,15 @@ peaks_and_evidence <- function( loci_dir, maindir ){
   mag_cols  <- c( "ensgid", "magma", "qmagma" )
   pa_cols   <- c( "gene",   "prot_att" )
   king_cols <- c( "ensgid", "rvis" )
-  ts12_cols <- c( "ensgid", "schema" )
+  mo_cols   <- setdiff( names(mo), c( "hgnc_id", "gene" ) )
+  # ts12_cols <- c( "ensgid", "schema" )
   j1 <- left_join( x=genes[ , ..gene_cols ], y=pops[ , ..pops_cols ], by="ensgid" )
   j2 <- left_join( x=j1,                     y=mag[  , ..mag_cols ],  by="ensgid" )
   j3 <- left_join( x=j2,                     y=pa[   , ..pa_cols ],   by="gene" )
   j4 <- left_join( x=j3,                     y=king[ , ..king_cols ], by="ensgid" )
-  j5 <- left_join( x=j4,                     y=ts12[ , ..ts12_cols ], by="ensgid" )
-  j6 <- left_join( x=j5,                     y=pm,                    by="ensgid" )
+  j6 <- left_join( x=j4,                     y=mo[   , ..mo_cols ],   by="ensgid" )
+  # j5 <- left_join( x=j4,                     y=ts12[ , ..ts12_cols ], by="ensgid" )
+  # j6 <- left_join( x=j5,                     y=pm,                    by="ensgid" )
   
   # Determine the POPS 90th percentile
   non_na_pops <- sort( na.omit(j6$pops), decreasing=TRUE )
@@ -749,10 +767,10 @@ peaks_and_evidence <- function( loci_dir, maindir ){
     if( sum( sub$type == "protein_coding" ) > 0 ){
       
       # Add locus number and number of genes in the locus
-      # sub$n_genes <- NROW(sub)
       sub$n_genes    <- sum( sub$type == "protein_coding" )
       sub$n_nc_genes <- sum( sub$type != "protein_coding" )
       sub$locus <- i
+      sub$snp   <- pk$snp[i]
       
       # Add distance to gene
       dist_start <- abs( sub$start - pk$centre[i] )
@@ -786,12 +804,10 @@ peaks_and_evidence <- function( loci_dir, maindir ){
       # Populate peak
       pk$n_genes[i]    <- sub3$n_genes[1]
       pk$n_nc_genes[i] <- sub3$n_nc_genes[1]
-      pk$d_gene[i]  <- paste( sub3$gene[ sub3$dist == min( sub3$dist, na.rm=TRUE ) ], 
-                              collapse=", " )
-      pk$p_gene[i]  <- paste( sub3$gene[ sub3$pops == max( sub3$pops, na.rm=TRUE ) &
-                                         !is.na(sub3$pops) ], collapse=", " )
-      pk$dist[i]    <- min( sub3$dist, na.rm=TRUE )
-      pk$pops[i]    <- max( sub3$pops, na.rm=TRUE )
+      pk$dist[i]    <- min( sub3$dist[ sub3$type == "protein_coding" ], na.rm=TRUE )
+      pk$pops[i]    <- max( sub3$pops[ sub3$type == "protein_coding" ], na.rm=TRUE )
+      pk$d_gene[i]  <- paste( sub3$gene[ pk$dist[i] ], collapse=", " )
+      pk$p_gene[i]  <- paste( sub3$gene[ pk$pops[i] ], collapse=", " )
       pk$both[i]    <- pk$d_gene[i] == pk$p_gene[i]
       pk$priority[i] <- pk$both[i] & pk$n_genes[i] <= 12 & pk$pops[i] > crit_pops
       
@@ -808,8 +824,8 @@ peaks_and_evidence <- function( loci_dir, maindir ){
   # Loci
   ev <- do.call( rbind, ev0 )
   ecols <- c( "locus", "gene", "ensgid", "chr", "start", "end", "tss",
-              "dist", "dist_tss", "pops", "qpops", "magma", "qmagma", "pubmed", 
-              "coding_pip", "promoter_pip", "schema", "n_genes", "n_nc_genes", 
+              "dist", "dist_tss", "pops", "qpops", "magma", "qmagma", 
+              "coding_pip", "promoter_pip", "n_genes", "n_nc_genes", 
               "prot_att", "rvis" )
   setcolorder( x=ev, neworder=ecols )
   fwrite( x=ev, file.path( maindir, "evidence.tsv" ), sep="\t" )
@@ -831,7 +847,6 @@ peaks_and_evidence <- function( loci_dir, maindir ){
 #   predict_causal_genes
 #-------------------------------------------------------------------------------
 
-maindir <- "/projects/0/prjs0817/projects/pops/analyses/scz/w3/eur_eas"
 predict_causal_genes <- function(maindir){
   
   #-----------------------------------------------------------------------------
@@ -841,12 +856,14 @@ predict_causal_genes <- function(maindir){
   # Libraries and sources
   library(data.table)
   library(dplyr)
+  library(glmnet)
   logit10 <- function(p) log10( p / (1-p) )
   logistic <- function(x) ( 1 / ( 1 + exp(-x) ) )
   
   # Read in evidence
   ev_file <- file.path( maindir, "evidence.tsv" )
-  ev <- fread(ev_file)
+  ev0 <- fread(ev_file)
+  ev  <- ev0[ ev0$type == "protein_coding" , ]
   
   # pops_glo
   ev$pops_glo <- ifelse( is.na(ev$pops), 
@@ -854,46 +871,82 @@ predict_causal_genes <- function(maindir){
                          ev$pops )
   
   # dist_gene_glo
-  ev$dist_gene_glo <- log10( ev$dist + 1e3 )
+  ev$dist_gene_glo <- -log10( ev$dist + 1e3 )
   
   # dist_tss_glo
-  ev$dist_tss_glo <- log10( ev$dist_tss + 1e3 )
+  ev$dist_tss_glo <- -log10( ev$dist_tss + 1e3 )
   
   # magma_glo
   ev$magma_glo <- ifelse( is.na(ev$magma), 
-                          median( abs(ev$magma), na.rm=TRUE ), 
-                          abs(ev$magma) )
-  ev$magma_glo[ ev$magma_glo > 10 ] <- 10
+                          median( ev$magma, na.rm=TRUE ), 
+                          ev$magma )
   
   # coding_glo
   ev$coding_pip[ is.na(ev$coding_pip) ] <- 0
-  ev$coding_glo <- ifelse( logit10(ev$coding_pip) < log10(10^-3), 
-                          log10(10^-3), 
-                          logit10(ev$coding_pip) )
-  
-  # PubMed
-  ev$pubmed_glo <- ifelse( is.na(ev$pubmed) | ev$pubmed == 0, 
-                           -1, log10(ev$pubmed) )
-  
-  # burden
-  ev$burden <- ifelse( ev$schema==1 & !is.na(ev$schema) , TRUE, FALSE )
-  ev$burden_prop <- mean(ev$burden)
+  ev$coding_pip[ ev$coding_pip > 0.99 ] <- 0.99
+  ev$coding_glo <- ifelse( is.na(ev$coding_pip) | ev$coding_pip < 0.00066196, 
+                           logit10(0.00066196), 
+                           logit10(ev$coding_pip) )
   
   # prior_n_genes_locus
-  ev$prior_n_genes_locus <- logit10( 1 / ( ev$n_genes + ev$n_nc_genes/2 ) )
-  ev$prior_n_genes_locus <- ifelse( ev$type == "protein_coding",
-                                    logit10( 1 / ( ev$n_genes + ev$n_nc_genes/2 ) ),
-                                    logit10( 0.5 / ( ev$n_genes + ev$n_nc_genes/2 ) ) )
-  ev$prior_n_genes_locus[ ev$n_genes + ev$n_nc_genes == 1 ] <- logit10(0.75)
+  ev$prior_n_genes_locus <- logit10( 1 / (ev$n_genes) )
+  ev$prior_n_genes_locus[ ev$n_genes == 1 ] <- logit10(0.75)
   
-  # prot_att
-  ev$prot_att_miss <- mean( is.na(ev$prot_att)[ ev$type=="protein_coding" ] )
-  ev$prot_att      <- mean( ev$prot_att[ ev$type=="protein_coding" ], na.rm=TRUE )
+  # Missingness
+  ev$pritchard_miss <- ifelse( is.na(ev$length), 1, 0 )
+  
+  # Gene length
+  ev$length[ is.na(ev$length) ] <- min( ev$length, na.rm=TRUE )
+  ev$gene_bp_log10 <- log10( ev$length*1e3 )
+  
+  # CDS length
+  ev$CDS_length[ is.na(ev$CDS_length) ] <- min( ev$CDS_length, na.rm=TRUE )
+  ev$cds_bp_log10 <- log10( ev$CDS_length*1e3 )
   
   # rvis
-  ev$rvis_miss   <- mean( is.na(ev$rvis)[ ev$type=="protein_coding" ] )
-  ev$rvis4       <- mean( ev$rvis[ ev$type=="protein_coding" ], na.rm=TRUE )
-  ev$rvis4_poly2 <- ev$rvis4^2
+  ev$rvis_miss              <- ifelse( is.na(ev$rvis), 1, 0 )
+  ev$rvis[ is.na(ev$rvis) ] <- median( ev$rvis, na.rm=TRUE )
+  ev$rvis4                  <- ifelse( abs(ev$rvis) > 4, 4*sign(ev$rvis), ev$rvis )
+  
+  # pLI
+  ev$pLI[ is.na(ev$pLI) ] <- 0.5
+  ev$pLI[ ev$pLI == 1 ] <- max( ev$pLI[ ev$pLI < 1 ])
+  ev$pLI_gt_0.9 <- ifelse( ev$pLI > 0.9, 1, 0 )
+  ev$pLI_lt_0.1 <- ifelse( ev$pLI < 0.1, 1, 0 )
+  ev$pLI_log10OR <- logit10(ev$pLI)
+  ev$pLI_log10OR <- ifelse( ev$pLI_log10OR < -20, -20, ev$pLI_log10OR )
+  ev$pLI_log10OR_pos <- ifelse( ev$pLI_log10OR < 0, 0, ev$pLI_log10OR )
+  ev$pLI_log10OR_neg <- ifelse( ev$pLI_log10OR > 0, 0, ev$pLI_log10OR )
+  
+  # hs
+  ev$hs[ is.na(ev$hs) ] <- max( ev$hs, na.rm=TRUE )
+  ev$hs_log10 <- ifelse( ev$hs < 1e-5, log10(1e-5), log10(ev$hs) )
+  
+  # ABC_count
+  ev$ABC_count[ is.na(ev$ABC_count) ] <- min( ev$ABC_count, na.rm=TRUE )
+  
+  # ABC_length_per_type
+  ev$ABC_length_per_type[ is.na(ev$ABC_length_per_type) ] <- 
+    min( ev$ABC_length_per_type, na.rm=TRUE )
+  ev$abc_bp_log10 <- ifelse( ev$ABC_length_per_type == 0, 
+                             log10( 0.2 * 1e3 ),
+                             log10( ev$ABC_length_per_type * 1e3 ) )
+  
+  # roadmap_bp_log10
+  ev$Roadmap_length_per_type[ is.na(ev$Roadmap_length_per_type) ] <- 
+    min( ev$Roadmap_length_per_type, na.rm=TRUE )
+  ev$roadmap_bp_log10 <- ifelse( ev$Roadmap_length_per_type == 0, 
+                                 log10( 0.2 * 1e3 ),
+                                 log10( ev$Roadmap_length_per_type * 1e3 ) )
+  
+  # promoter_count
+  ev$promoter_count[ is.na(ev$promoter_count) ] <- 
+    min( ev$promoter_count, na.rm=TRUE )
+  ev$promoter_count_log10 <- log10( ev$promoter_count + 1 )
+  
+  # prot_att
+  ev$prot_att_miss                  <- ifelse( is.na(ev$prot_att), 1, 0 )
+  ev$prot_att[ is.na(ev$prot_att) ] <- median( ev$prot_att, na.rm=TRUE )
   
   
   #-----------------------------------------------------------------------------
@@ -901,8 +954,8 @@ predict_causal_genes <- function(maindir){
   #-----------------------------------------------------------------------------
   
   # Initialize new columns
-  ev$pops_bil <- ev$dist_gene_bil <- ev$pubmed_bil <- FALSE
-  ev$pops_rel <- ev$dist_gene_rel <- ev$pubmed_rel <- ev$magma_rel <- as.numeric(NA)
+  ev$pops_bil <- ev$dist_gene_bil <- ev$magma_bil <- ev$coding_bil <- FALSE
+  ev$pops_rel <- ev$dist_gene_rel <- ev$magma_rel <- ev$coding_rel <- as.numeric(NA)
   
   # Loop through loci
   for( i in unique(ev$locus) ){
@@ -910,15 +963,23 @@ predict_causal_genes <- function(maindir){
     # Subset to the focal locus
     locus <- ev[ ev$locus == i , ]
     
-    # pops_bil, pops_rel, dist_gene_rel, magma_rel
-    ev$pops_bil[      ev$locus == i ] <- locus$pops_glo == max(locus$pops_glo)
-    ev$dist_gene_bil[ ev$locus == i ] <- locus$dist     == min(locus$dist)
-    ev$pubmed_bil[    ev$locus == i ] <- locus$pubmed   == max(locus$pubmed)
-    ev$pops_rel[      ev$locus == i ] <- locus$pops_glo - max(locus$pops_glo)
-    ev$dist_gene_rel[ ev$locus == i ] <- log10( locus$dist - min(locus$dist) + 1e3 )
-    ev$pubmed_rel[    ev$locus == i ] <- locus$pubmed_glo - max(locus$pubmed_glo)
-    ev$magma_rel[     ev$locus == i ] <- locus$magma_glo - max(locus$magma_glo)
-    ev$coding_rel[    ev$locus == i ] <- locus$coding_glo - max(locus$coding_glo)
+    # Assign BIL and relative values
+    ev$pops_bil[      ev$locus == i ] <- locus$pops_glo    == max(locus$pops_glo)
+    ev$dist_gene_bil[ ev$locus == i ] <- locus$dist        == min(locus$dist)
+    ev$magma_bil[     ev$locus == i ] <- locus$magma_glo   == max(locus$magma_glo)
+    ev$coding_bil[    ev$locus == i ] <- locus$coding_glo  == max(locus$coding_glo)
+    ev$pops_rel[      ev$locus == i ] <- locus$pops_glo     - max(locus$pops_glo)
+    ev$dist_gene_rel[ ev$locus == i ] <- -log10( locus$dist - min(locus$dist) + 1e3 )
+    ev$magma_rel[     ev$locus == i ] <- locus$magma_glo    - max(locus$magma_glo)
+    ev$coding_rel[    ev$locus == i ] <- locus$coding_glo   - max(locus$coding_glo)
+    
+    # Ensure that POPS and distance BIL is TRUE for the top protein-coding gene
+    max_coding_pops <- max( locus$pops_glo[ locus$type == "protein_coding" ] )
+    min_coding_dist <- min( locus$dist[     locus$type == "protein_coding" ] )
+    ev$pops_bil[      ev$locus == i & ev$type == "protein_coding" &
+                      ev$pops_glo == max_coding_pops ] <- TRUE
+    ev$dist_gene_bil[ ev$locus == i & ev$type == "protein_coding" &
+                      ev$dist     == min_coding_dist ] <- TRUE
   }
   
   
@@ -926,33 +987,57 @@ predict_causal_genes <- function(maindir){
   #   Get fitted probabilities
   #-----------------------------------------------------------------------------
   
-  # Read in ML model
-  # s_glm <- readRDS("/projects/0/prjs0817/projects/pops/data/scz_glm_nb.rds")
-  s_glm <- readRDS("/projects/0/prjs0817/projects/pops/data/scz_glm.rds")
+  # Read in CALDERA model and calibration model
+  # caldera_mod <- readRDS("/projects/0/prjs0817/projects/pops/data/scz_glm_nb.rds")
+  caldera_mod <- readRDS("/projects/0/prjs0817/projects/pops/data/sg_las.rds")
+  calib_mod   <- readRDS("/projects/0/prjs0817/projects/pops/data/sg_las_recal_mod.rds")
   
   # Get predictions
-  pred <- predict( s_glm, newdata=ev, se=TRUE )
+  # pred <- predict( caldera_mod, newdata=ev, se=TRUE )
+  feat_cols <- caldera_mod$glmnet$beta@Dimnames[[1]]
+  pred <- predict( object=caldera_mod, newx=as.matrix( ev[ , ..feat_cols ] ), 
+                      s="lambda.1se", type="response" )
+  ev$causal_p <- as.vector(pred)
   
-  # Format fitted values
-  y    <- pred$fit
-  ci   <- pred$se.fit * qnorm( 0.025, lower.tail=FALSE )
-  ymin <- y - ci
-  ymax <- y + ci
-  ev$causal_p  <- logistic(y)
-  ev$causal_lo <- logistic(ymin)
-  ev$causal_hi <- logistic(ymax)
-  ev <- ev[ order( ev$locus, -ev$causal_p ) , ]
-  
-  # Rescale
-  ev$causal_r <- as.numeric(NA)
+  # Loop through loci adding columns necessary for calibration
+  ev$scaled <- ev$relative <- ev$global <- as.numeric(NA)
   for( i in unique(ev$locus) ){
-    sub  <- ev[ ev$locus==i , ]
-    vals <- sub$causal_p / sum(sub$causal_p)
-    set( x     = ev,
-         i     = which( ev$locus == i ),
-         j     = "causal_r",
-         value = vals )
+    
+    # Subset to locus
+    sub <- ev[ ev$locus == i , ]
+    idx <- order( -sub[["causal_p"]] )
+    
+    # Re-calibrate: scaled
+    scaled <- sub[["causal_p"]] / sum( sub[["causal_p"]] )
+    
+    # Make variables for global, relative, and BIL scores
+    glo <- log( prop_to_odds( sub[["causal_p"]] ) )
+    rel <- glo - max(glo)
+    
+    # Assign values: scaled
+    set( x     = ev, 
+         i     = which( ev$locus == i ), 
+         j     = "scaled", 
+         value = scaled )
+    
+    # Assign values: global score
+    set( x     = ev, 
+         i     = which( ev$locus == i ), 
+         j     = "global", 
+         value = glo )
+    
+    # Assign values: relative score
+    set( x     = ev, 
+         i     = which( ev$locus == i ), 
+         j     = "relative", 
+         value = rel )
   }
+  
+  # Add calibrated predictions
+  pred_cols <- c( "global", "relative" )
+  ev$causal_r <- predict( object=calib_mod, s="lambda.min", type="response",
+                               newx=as.matrix( ev[ , ..pred_cols ] ) )
+  ev <- ev[ order( ev$locus, -ev$causal_r ) , ]
   
   # Create column for genes prioritized by our non-ML criteria
   ev$both     <- ev$dist_gene_bil & ev$pops_bil
@@ -961,8 +1046,9 @@ predict_causal_genes <- function(maindir){
   
   # Format
   gcols <- c( "gene", "causal_p", "causal_r", "dist", "pops_glo", "magma", 
-              "pubmed", "coding_pip", "burden", "n_genes", "n_nc_genes", 
-              "dist_gene_rel", "pops_rel", "magma_rel", "qpops", "qmagma" )
+              "coding_pip", "n_genes", "n_nc_genes", "dist_gene_rel", 
+              "pops_rel", "magma_rel", "qpops", "qmagma", 
+              "locus", "snp", "ensgid" )
   setcolorder( x=ev, neworder=gcols )
   fwrite( x=ev[,..gcols], file=file.path( maindir, "p_causal.tsv" ), sep="\t" )
   
@@ -972,8 +1058,9 @@ predict_causal_genes <- function(maindir){
   #-----------------------------------------------------------------------------
   
   # Look at all genes with P(causal) > 75%
-  ev2 <- ev[ ev$causal_p > 0.75 , ..gcols ]
-  head( ev2[ ev2$n_genes  > 1 , ], 18 )
+  ev1 <- ev[  !duplicated(ev$gene) , ]
+  ev2 <- ev1[ ev1$causal_p > 0.75 , ..gcols ]
+  head( ev2[ ev2$n_genes  > 1 , ], 12 )
   ev2[ ev2$n_genes == 1 , ]
   
   # Are there any single genes with P(causal) < 75%? Yes, plenty now.
@@ -999,16 +1086,22 @@ predict_causal_genes <- function(maindir){
   table( ev$both & ev$n_genes<=8  , ev$causal_p > p )
   
   # What about adding a top MAGMA restriction?
-  table( ev$both & ev$n_genes<=8 & ev$magma_rel==0 ,  
+  table( ev$both & 
+           # ev$magma_rel==0 & 
+           ev$n_genes<=8 ,  
          ev$causal_p > p )
   
   # What about adding a 90th POPS restriction?
-  table( ev$both & ev$n_genes<=8 & ev$magma_rel==0 & ev$qpops>0.9 ,  
+  table( ev$both & ev$n_genes<=8 & 
+           # ev$magma_rel==0 &
+           ev$qpops>0.9 ,  
          ev$causal_p > p )
   
   # Which genes pass our criteria and have high P(causal)?
-  ev4 <- ev[ ev$both & ev$n_genes<=8 & 
-               ev$magma_rel==0 & ev$qpops>0.9 , ]
+  ev4 <- ev[ ev$both & 
+               # ev$qpops>0.9 &
+               # ev$magma_rel==0 & 
+               ev$n_genes<=8 , ]
   ev5 <- ev4[ ev4$causal_p > p , ..gcols ]
   ev5[ 1:18  , ]
   ev5[ 19:36 , ]
@@ -1022,13 +1115,28 @@ predict_causal_genes <- function(maindir){
   # Can save two as coding PIP > 50% (WSCD2 and SLC39A8)
   # Can save three as "dense loci with massive POPS" (YWHAE, DRD2, and FURIN)
   # So of the 54 genes with P(causal) > 75%, 51 will be discussed in the paper!
-  ev7 <- ev[ !( ev$both & ev$n_genes<=8 & ev$magma_rel==0 & 
+  ev7 <- ev[ !( ev$both & ev$n_genes<=8 & 
+                  # ev$magma_rel==0 & 
                   ev$qpops>0.9 ) & ev$causal_p > p , ..gcols ]
   ev7
   
   # Let's look at the prioritized genes with the lowest P(causal)
   # Let's look at the non-prioritized genes with the highest P(causal)
   tail( ev[ ev$priority & ev$causal_p < 0.75 , ..gcols ] )
+  
+  # 
+  ncols <- setdiff( gcols, c( "pubmed", "burden" ) )
+  ev8 <- ev[ ( ( ev$dist_gene_bil & ev$pops_bil ) | ev$coding_pip > 0.5 ) &
+               !is.na(ev$qpops) , ]
+  length( unique(ev8$gene) )
+  ev8[ 1:18 , ..ncols ]
+  table( ev8$causal_p < 0.75 )
+  ev8[ ev8$n_genes > 8 , ..ncols ]
+  ev8[ ev8$coding_pip > 0.5 , ..ncols ]
+  ev8[ ev8$qpops < 0.9 | is.na(ev8$qpops) , ..ncols ]
+  ev8[ ev8$pops_rel < 0 | ev8$dist_gene_rel > 3 , ..ncols ]
+  ev8[ ev8$chr == 12 & ev8$start > 25e6 & ev8$end < 45e6 , ..ncols ]
+  ev8[ ( ev8$qpops < 0.9 | is.na(ev8$qpops) ) & ev8$dist > 1e4 , ..ncols ]
   
   
   #-----------------------------------------------------------------------------
