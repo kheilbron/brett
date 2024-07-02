@@ -30,9 +30,9 @@ gc2 <- gc[ gc$type == "gene" , ]
 gc2$ENSGID <- sub( pattern     = "^ID=(.*)\\.[[:digit:]]*;gene_id=.*",
                    replacement = "\\1",
                    x           = gc2$attr)
-gc2$gene_type <- sub( pattern     = "^.*gene_type=([[:alpha:]_]+);gene.*",
-                      replacement = "\\1",
-                      x           = gc2$attr)
+gc2$TYPE <- sub( pattern     = "^.*gene_type=([[:alpha:]_]+);gene.*",
+                 replacement = "\\1",
+                 x           = gc2$attr)
 gc2$NAME <- sub( pattern     = ".*gene_name=(.*);level=.*",
                  replacement = "\\1",
                  x           = gc2$attr)
@@ -53,13 +53,20 @@ gc2$TSS <- ifelse( gc2$STRAND == "+",
 #--------------------------------------------------------------------------------
 
 # Subset
-gcols <- c( "ENSGID", "CHR", "START", "END", "TSS", "STRAND", "NAME" )
-gc3 <- gc2[ match( pops$ENSGID, gc2$ENSGID ) , ..gcols ]
-gc4 <- gc3[ !is.na(gc3$ENSGID) , ]
+gtypes <- c( "protein_coding", "lncRNA", "miRNA", "snRNA", "snoRNA",
+             "transcribed_unprocessed_pseudogene", 
+             "transcribed_processed_pseudogene",
+             "transcribed_unitary_pseudogene" )
+gcols <- c( "ENSGID", "CHR", "START", "END", "TSS", "STRAND", "NAME", "TYPE" )
+gc3 <- gc2[ gc2$TYPE %in% gtypes , ..gcols ]
+gc4 <- gc3[ match( pops$ENSGID, gc2$ENSGID ) , ..gcols ]
+gc4 <- gc4[ !is.na(gc4$ENSGID) , ]
 
 # Write
-outfile <- "/projects/0/prjs0817/projects/pops/data/gene_locations.tsv"
-fwrite( x=gc4, file=outfile, sep="\t" )
+outfile1 <- "/projects/0/prjs0817/projects/pops/data/gene_locations.tsv"
+outfile2 <- "/projects/0/prjs0817/projects/pops/data/gene_locations_inc_nc.tsv"
+fwrite( x=gc4, file=outfile1, sep="\t" )
+fwrite( x=gc3, file=outfile2, sep="\t" )
 
 
 #--------------------------------------------------------------------------------
