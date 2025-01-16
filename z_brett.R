@@ -852,8 +852,8 @@ peaks_and_evidence <- function( loci_dir, maindir ){
       pk$n_nc_genes[i] <- sub3$n_nc_genes[1]
       pk$dist[i]    <- min( sub3$dist[ sub3$type == "protein_coding" ], na.rm=TRUE )
       pk$pops[i]    <- max( sub3$pops[ sub3$type == "protein_coding" ], na.rm=TRUE )
-      pk$d_gene[i]  <- paste( sub3$gene[ pk$dist[i] ], collapse=", " )
-      pk$p_gene[i]  <- paste( sub3$gene[ pk$pops[i] ], collapse=", " )
+      pk$d_gene[i]  <- paste( sub3$gene[ !is.na(sub3$dist) & sub3$dist == pk$dist[i] ], collapse=", " )
+      pk$p_gene[i]  <- paste( sub3$gene[ !is.na(sub3$pops) & sub3$pops == pk$pops[i] ], collapse=", " )
       pk$both[i]    <- pk$d_gene[i] == pk$p_gene[i]
       pk$priority[i] <- pk$both[i] & pk$n_genes[i] <= 12 & pk$pops[i] > crit_pops
       
@@ -903,8 +903,6 @@ predict_causal_genes <- function(maindir){
   library(data.table)
   library(dplyr)
   library(glmnet)
-  logit10 <- function(p) log10( p / (1-p) )
-  logistic <- function(x) ( 1 / ( 1 + exp(-x) ) )
   
   # Read in evidence
   ev_file <- file.path( maindir, "evidence.tsv" )
@@ -931,8 +929,8 @@ predict_causal_genes <- function(maindir){
   ev$prior_n_genes_locus <- logit10( 1 / (ev$n_genes) )
   ev$prior_n_genes_locus[ ev$n_genes == 1 ] <- logit10(0.75)
   
-  # Read in mean bias feature values
-  mean_bias   <- readRDS("/projects/0/prjs0817/projects/pops/data/mean_bias.rds")
+  # Read in mean covariate values
+  mean_bias   <- readRDS("/projects/0/prjs0817/repos/caldera/trained_models/covariate_means.rds")
   for( i in seq_along(mean_bias) ){
     ev[[ names(mean_bias)[i] ]] <- mean_bias[i]
   }
@@ -985,8 +983,8 @@ predict_causal_genes <- function(maindir){
   
   # Read in CALDERA model and calibration model
   # caldera_mod <- readRDS("/projects/0/prjs0817/projects/pops/data/scz_glm_nb.rds")
-  caldera_mod <- readRDS("/projects/0/prjs0817/projects/pops/data/bg_las.rds")
-  calib_mod   <- readRDS("/projects/0/prjs0817/projects/pops/data/bg_las_recal_mod.rds")
+  caldera_mod <- readRDS("/projects/0/prjs0817/repos/caldera/trained_models/caldera_model_step1.rds")
+  calib_mod   <- readRDS("/projects/0/prjs0817/repos/caldera/trained_models/caldera_model_step2.rds")
   
   # Get predictions
   # pred <- predict( caldera_mod, newdata=ev, se=TRUE )
@@ -1032,7 +1030,7 @@ predict_causal_genes <- function(maindir){
   # Add calibrated predictions
   pred_cols <- c( "global", "relative" )
   ev$causal_r <- predict( object=calib_mod$lasso, s="lambda.min", type="response",
-                               newx=as.matrix( ev[ , ..pred_cols ] ) )
+                          newx=as.matrix( ev[ , ..pred_cols ] ) )
   
   # Create column for genes prioritized by our non-ML criteria
   ev$both     <- ev$dist_gene_bil & ev$pops_bil
