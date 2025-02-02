@@ -59,7 +59,7 @@ gtypes <- c( "protein_coding", "lncRNA", "miRNA", "snRNA", "snoRNA",
              "transcribed_unitary_pseudogene" )
 gcols <- c( "ENSGID", "CHR", "START", "END", "TSS", "STRAND", "NAME", "TYPE" )
 gc3 <- gc2[ gc2$TYPE %in% gtypes , ..gcols ]
-gc4 <- gc3[ match( pops$ENSGID, gc2$ENSGID ) , ..gcols ]
+gc4 <- gc3[ match( pops$ENSGID, gc3$ENSGID ) , ]
 gc4 <- gc4[ !is.na(gc4$ENSGID) , ]
 
 # Write
